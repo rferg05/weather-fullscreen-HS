@@ -1,0 +1,23 @@
+{
+  "name": "weather-fullscreen",
+  "version": "1.0.0",
+  "description": "Home Screens plugin: full-screen weather with a rain outlook, 36-hour chart, sun and moon arc and the week",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite build && (vite build --watch & npx -y serve@latest . -l 5173 --cors --no-clipboard)",
+    "build": "vite build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "lucide-react": "^1.60.0"
+  }
+}

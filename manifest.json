@@ -1,0 +1,257 @@
+{
+  "id": "weather-fullscreen",
+  "name": "Weather Full Screen",
+  "version": "1.0.0",
+  "description": "A full-screen weather display built to answer \"will it rain while I’m out, when, and how much\": the rain outlook first, a 36-hour chart with rain amounts and sharp temperature swings called out, the sun and moon arc with the time, and the week. Readable from across the room over any background.",
+  "author": "Ryan",
+  "license": "MIT",
+  "minAppVersion": "1.7.1",
+  "moduleType": "weather-fullscreen",
+  "category": "Weather & Environment",
+  "icon": "CloudSun",
+  "defaultConfig": {
+    "awayEnabled": true,
+    "awayStart": 8,
+    "awayEnd": 18,
+    "rainLikely": 40,
+    "useOpenMeteo": true,
+    "hours": 36,
+    "swingThreshold": 10,
+    "showSunCard": true,
+    "showArcClock": true,
+    "timeFormat": "auto",
+    "textScale": 1,
+    "cardColor": "#0b1220",
+    "nowStrength": 55,
+    "sunStrength": 55,
+    "rainStrength": 55,
+    "chartStrength": 55,
+    "weekStrength": 55,
+    "cardBlur": 0,
+    "cardBorderWidth": 0,
+    "cardBorderColor": "#64748b",
+    "textShadow": true,
+    "accentColor": "#fbbf24"
+  },
+  "defaultSize": {
+    "w": 1920,
+    "h": 1080
+  },
+  "defaultStyle": {
+    "fontSize": 30,
+    "padding": 24,
+    "backgroundColor": "rgba(0, 0, 0, 0)"
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "awayEnabled": {
+        "type": "boolean",
+        "title": "Mark my time out of the house",
+        "description": "Shades it on the chart and says whether it will rain then.",
+        "ui:widget": "toggle",
+        "ui:group": "Rain"
+      },
+      "awayStart": {
+        "type": "number",
+        "title": "Out from (hour, 0–23)",
+        "description": "8 is 8 AM, 17 is 5 PM.",
+        "minimum": 0,
+        "maximum": 23,
+        "ui:widget": "slider",
+        "ui:step": 1,
+        "ui:group": "Rain"
+      },
+      "awayEnd": {
+        "type": "number",
+        "title": "Back by (hour, 0–23)",
+        "minimum": 0,
+        "maximum": 23,
+        "ui:widget": "slider",
+        "ui:step": 1,
+        "ui:group": "Rain"
+      },
+      "rainLikely": {
+        "type": "number",
+        "title": "Count an hour as rainy from (% chance)",
+        "description": "Lower it to hear about smaller chances.",
+        "minimum": 10,
+        "maximum": 90,
+        "ui:widget": "slider",
+        "ui:step": 5,
+        "ui:group": "Rain"
+      },
+      "useOpenMeteo": {
+        "type": "boolean",
+        "title": "Rain amounts from Open-Meteo",
+        "description": "Free, no key. Adds how much rain and snow to expect, hour by hour. Off: chance of rain only, from your weather provider.",
+        "ui:widget": "toggle",
+        "ui:group": "Rain"
+      },
+      "hours": {
+        "type": "number",
+        "title": "Hours on the chart",
+        "minimum": 12,
+        "maximum": 48,
+        "ui:widget": "slider",
+        "ui:step": 6,
+        "ui:group": "Chart"
+      },
+      "swingThreshold": {
+        "type": "number",
+        "title": "Call out temperature swings of (°F)",
+        "description": "A change this big within 3 hours gets a marker, and a note under the current temperature when it’s in the next 12 hours.",
+        "minimum": 3,
+        "maximum": 25,
+        "ui:widget": "slider",
+        "ui:step": 1,
+        "ui:group": "Chart"
+      },
+      "showSunCard": {
+        "type": "boolean",
+        "title": "Show the sun and moon arc",
+        "ui:widget": "toggle",
+        "ui:group": "Layout"
+      },
+      "showArcClock": {
+        "type": "boolean",
+        "title": "Show the time inside the arc",
+        "ui:widget": "toggle",
+        "ui:group": "Layout"
+      },
+      "timeFormat": {
+        "type": "string",
+        "title": "Times",
+        "enum": [
+          "auto",
+          "12h",
+          "24h"
+        ],
+        "enumLabels": [
+          "Household setting",
+          "12-hour",
+          "24-hour"
+        ],
+        "ui:widget": "select",
+        "ui:group": "Layout"
+      },
+      "textScale": {
+        "type": "number",
+        "title": "Text size",
+        "description": "Text already grows with the module: about 30 px body text and a 168 px temperature on a full 1080p screen.",
+        "minimum": 0.6,
+        "maximum": 1.6,
+        "ui:widget": "slider",
+        "ui:step": 0.05,
+        "ui:group": "Layout"
+      },
+      "cardColor": {
+        "type": "string",
+        "title": "Card color",
+        "description": "A dark color keeps white text readable over bright photos.",
+        "ui:widget": "color",
+        "ui:group": "Cards"
+      },
+      "nowStrength": {
+        "type": "number",
+        "title": "Now card strength (%)",
+        "description": "How strongly the card color covers the background: 0 is clear, 100 is solid.",
+        "minimum": 0,
+        "maximum": 100,
+        "ui:widget": "slider",
+        "ui:step": 5,
+        "ui:group": "Cards"
+      },
+      "sunStrength": {
+        "type": "number",
+        "title": "Sun and moon card strength (%)",
+        "minimum": 0,
+        "maximum": 100,
+        "ui:widget": "slider",
+        "ui:step": 5,
+        "ui:group": "Cards"
+      },
+      "rainStrength": {
+        "type": "number",
+        "title": "Rain card strength (%)",
+        "minimum": 0,
+        "maximum": 100,
+        "ui:widget": "slider",
+        "ui:step": 5,
+        "ui:group": "Cards"
+      },
+      "chartStrength": {
+        "type": "number",
+        "title": "Chart card strength (%)",
+        "minimum": 0,
+        "maximum": 100,
+        "ui:widget": "slider",
+        "ui:step": 5,
+        "ui:group": "Cards"
+      },
+      "weekStrength": {
+        "type": "number",
+        "title": "Week card strength (%)",
+        "minimum": 0,
+        "maximum": 100,
+        "ui:widget": "slider",
+        "ui:step": 5,
+        "ui:group": "Cards"
+      },
+      "cardBlur": {
+        "type": "number",
+        "title": "Frosted glass (blur)",
+        "description": "Blurs the background behind each card so text reads over a busy photo.",
+        "minimum": 0,
+        "maximum": 24,
+        "ui:widget": "slider",
+        "ui:step": 1,
+        "ui:group": "Cards"
+      },
+      "cardBorderWidth": {
+        "type": "number",
+        "title": "Border thickness (px)",
+        "description": "0 is no border.",
+        "minimum": 0,
+        "maximum": 6,
+        "ui:widget": "slider",
+        "ui:step": 1,
+        "ui:group": "Cards"
+      },
+      "cardBorderColor": {
+        "type": "string",
+        "title": "Border color",
+        "ui:widget": "color",
+        "ui:group": "Cards"
+      },
+      "textShadow": {
+        "type": "boolean",
+        "title": "Soft shadow behind text",
+        "description": "Keeps text readable when a card is mostly clear.",
+        "ui:widget": "toggle",
+        "ui:group": "Cards"
+      },
+      "accentColor": {
+        "type": "string",
+        "title": "Accent color",
+        "description": "The now line, your time out of the house.",
+        "ui:widget": "color",
+        "ui:group": "Cards"
+      }
+    }
+  },
+  "exports": {
+    "component": "default"
+  },
+  "dataRequirements": [
+    "weather",
+    "location"
+  ],
+  "prefetchUrl": null,
+  "permissions": [
+    "network"
+  ],
+  "allowedDomains": [
+    "api.open-meteo.com"
+  ]
+}
