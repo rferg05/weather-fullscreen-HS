@@ -2,6 +2,16 @@
 
 A Home Screens module that fills the screen with weather, in order of what matters before you leave the house: **will it rain, when, and how much**. It combines [Outlined Weather](../outlined-weather/README.md) and the [Sun Arc Clock](../../Sun/sun-clock/README.md), and is built to be read from across the room over any background photo.
 
+## Install
+
+In the Home Screens editor, open the Plugin Store, choose **Install from URL**, and paste:
+
+```
+https://github.com/rferg05/weather-fullscreen-HS/releases/latest/download/weather-fullscreen.tar.gz
+```
+
+This always points at the newest release. To update: Plugin Store > **Installed**, then the download icon on Weather Full Screen, then **Install**.
+
 ## What it shows
 
 - **Rain outlook** (top right, the largest words on the screen):
