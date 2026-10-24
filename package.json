@@ -1,6 +1,6 @@
 {
   "name": "weather-fullscreen",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Home Screens plugin: full-screen weather with a rain outlook, 36-hour chart, sun and moon arc and the week",
   "license": "MIT",
   "scripts": {

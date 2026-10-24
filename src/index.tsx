@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { ArrowUp, Droplets, Gauge, TriangleAlert, Umbrella, CircleCheck, Snowflake, Wind, Sun as SunIcon } from 'lucide-react';
+import { ArrowUp, Droplets, Leaf, TriangleAlert, Umbrella, CircleCheck, Snowflake, Wind, Sun as SunIcon, CalendarDays } from 'lucide-react';
 import type { PluginComponentProps } from './hs-plugin';
 import { hostFrameStyle } from './host-style';
 import { colorIconComponents } from './color-icons';
@@ -9,7 +9,7 @@ import { HoursChart, RAIN_BLUE } from './chart';
 import type { ChartHour } from './chart';
 import { intensity, rainEvents, sharpSwings } from './rain';
 import type { RainEvent } from './rain';
-import { usePrecip } from './openmeteo';
+import { useAirQuality, usePrecip } from './openmeteo';
 import { todaysSunTimes } from './sun/astro';
 import type { SunTimes } from './sun/astro';
 import SunClock from './sun/index';
@@ -25,7 +25,6 @@ interface HourlyWeather {
   windDirection?: number;
   windGust?: number;
   uvIndex?: number;
-  pressure?: number;
   icon: string;
   description: string;
   precipProbability?: number;
@@ -74,6 +73,26 @@ function tempColor(t: number, metric: boolean): string {
   }
   return `rgb(${TEMP_STOPS[TEMP_STOPS.length - 1][1].join(',')})`;
 }
+
+/** Colour accents for the stat icons, the card headings and the date. */
+const WIND_TEAL = '#2dd4bf';
+const HUMID_BLUE = '#38bdf8';
+const UV_AMBER = '#fbbf24';
+const HOURS_SKY = '#7dd3fc';
+const WEEK_VIOLET = '#c4b5fd';
+
+/** The EPA's AQI categories: name and colour. */
+function aqiCategory(aqi: number): [string, string] {
+  if (aqi <= 50) return ['Good', '#4ade80'];
+  if (aqi <= 100) return ['Moderate', '#facc15'];
+  if (aqi <= 150) return ['Unhealthy for sensitive groups', '#fb923c'];
+  if (aqi <= 200) return ['Unhealthy', '#f87171'];
+  if (aqi <= 300) return ['Very unhealthy', '#c084fc'];
+  return ['Hazardous', '#e11d48'];
+}
+
+/** Alerts about the air rather than the weather. */
+const AIR_ALERT = /air quality|air stagnation|smoke|ozone|particulate|pm2\.5|unhealthy air/i;
 
 function uvColor(uv: number): string {
   if (uv < 3) return '#4ade80';
@@ -167,6 +186,9 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const h12 = timeFormat ? timeFormat !== '24h' : undefined;
 
   const precip = usePrecip(useOpenMeteo, lat, lng, metric);
+  const airOn = config.showAirQuality !== false;
+  const aqiAt = Math.min(300, Math.max(51, num(config.aqiThreshold, 151)));
+  const aqi = useAirQuality(airOn, lat, lng);
 
   const { boxRef, fontSize: fs } = useFitFontSize(
     (w, h) => (w && h ? BASE_PX * Math.min(w / 1920, h / 1080) * textScale : BASE_PX * textScale),
@@ -301,9 +323,9 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     display: 'flex',
     flexDirection: 'column',
   });
-  const heading = (text: string, right?: React.ReactNode) => (
+  const heading = (text: string, color: string, right?: React.ReactNode) => (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1em', flexShrink: 0, marginBottom: '0.35em' }}>
-      <span style={{ fontSize: '0.72em', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.8 }}>{text}</span>
+      <span style={{ fontSize: '0.72em', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color }}>{text}</span>
       {right}
     </div>
   );
@@ -326,20 +348,31 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   // ── Now ──
   const swingSoon = swings.find((s) => chartHours[s.from].t < now + 12 * HOUR);
   const feels = current && typeof current.feelsLike === 'number' && Math.abs(current.feelsLike - current.temp) >= 3 ? current.feelsLike : null;
-  const stat = (label: string, value: React.ReactNode, icon: React.ReactNode) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em', minWidth: 0 }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: '0.35em', fontSize: '0.72em', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.8 }}>
-        {icon}{label}
+  /** A reading with its icon on a chip of its own colour. */
+  const stat = (label: string, value: React.ReactNode, Glyph: React.ComponentType<{ size?: string; strokeWidth?: number; color?: string }>, color: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5em', minWidth: 0 }}>
+      <span style={{
+        flexShrink: 0, width: '2.1em', height: '2.1em', borderRadius: '0.55em', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: `${color}38`, boxShadow: `inset 0 0 0 0.08em ${color}80`,
+      }}>
+        <Glyph size="1.25em" strokeWidth={2.4} color={color} aria-hidden="true" />
       </span>
-      <span style={{ fontSize: '1.45em', fontWeight: 600, whiteSpace: 'nowrap' }}>{value}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <span style={{ fontSize: '0.7em', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color }}>{label}</span>
+        <span style={{ fontSize: '1.4em', fontWeight: 650, whiteSpace: 'nowrap' }}>{value}</span>
+      </div>
     </div>
   );
-  const pressure = current?.pressure != null
-    ? metric ? `${Math.round(current.pressure)} hPa` : `${(current.pressure * 0.02953).toFixed(2)} inHg`
-    : null;
+  // Air quality earns a place only when it's bad: an air-quality alert, or
+  // an AQI at or above the setting.
+  const airAlert = alerts.find((a) => AIR_ALERT.test(a.title));
+  const airBad = airOn && (airAlert != null || (aqi != null && aqi >= aqiAt));
+  const airColor = aqi != null ? aqiCategory(aqi)[1] : '#fb923c';
   const nowCard = (
     <div data-fit style={{ ...card('nowStrength'), justifyContent: 'space-between', gap: '0.25em' }}>
-      <span style={{ fontSize: '1.1em', fontWeight: 600, opacity: 0.9 }}>{fLongDate.format(now)}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em', fontSize: '1.1em', fontWeight: 700, color: accent }}>
+        <CalendarDays size="1em" strokeWidth={2.4} aria-hidden="true" />{fLongDate.format(now)}
+      </span>
       {current && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3em' }}>
           <span style={{ fontSize: '5em', fontWeight: 300, lineHeight: 0.92, letterSpacing: '-0.03em' }}>{deg(current.temp)}</span>
@@ -375,14 +408,19 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
               {current.windGust != null && current.windGust >= current.windSpeed + 8 ? `–${Math.round(current.windGust)}` : ''}
               <span style={{ fontSize: '0.6em', fontWeight: 500 }}> {metric ? 'km/h' : 'mph'}</span>
             </span>
-          ), <Wind size="1.1em" aria-hidden="true" />)}
-          {current.humidity != null && stat('Humidity', `${Math.round(current.humidity)}%`, <Droplets size="1.1em" aria-hidden="true" />)}
+          ), Wind, WIND_TEAL)}
+          {current.humidity != null && stat('Humidity', `${Math.round(current.humidity)}%`, Droplets, HUMID_BLUE)}
           {current.uvIndex != null && !isNight(now) && stat('UV index', (
             <span style={{ display: 'inline-block', padding: '0 0.3em', borderRadius: '0.25em', background: uvColor(current.uvIndex), color: '#111827', textShadow: 'none' }}>
               {Math.round(current.uvIndex)}
             </span>
-          ), <SunIcon size="1.1em" aria-hidden="true" />)}
-          {pressure && stat('Pressure', pressure, <Gauge size="1.1em" aria-hidden="true" />)}
+          ), SunIcon, UV_AMBER)}
+          {airBad && stat('Air quality', aqi != null ? (
+            <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '0.3em' }}>
+              {Math.round(aqi)}
+              <span style={{ fontSize: '0.55em', fontWeight: 700, color: airColor, whiteSpace: 'normal' }}>{aqiCategory(aqi)[0]}</span>
+            </span>
+          ) : <span style={{ color: airColor }}>Alert</span>, Leaf, airColor)}
         </div>
       )}
     </div>
@@ -453,7 +491,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   // ── The next hours ──
   const chartCard = (
     <div data-fit style={card('chartStrength')}>
-      {heading(`Next ${chartHours.length} hours`, (
+      {heading(`Next ${chartHours.length} hours`, HOURS_SKY, (
         <span style={{ display: 'flex', gap: '1em', fontSize: '0.72em', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.9 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
             <span style={{ width: '0.8em', height: '0.8em', borderRadius: '0.15em', background: RAIN_BLUE }} />{precip ? `Rain (${amountUnit})` : 'Chance of rain'}
@@ -466,7 +504,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
         </span>
       ))}
       <HoursChart
-        hours={chartHours} now={now} events={upcoming} swings={swings} away={away} fs={fs} accent={accent}
+        hours={chartHours} now={now} events={upcoming} fs={fs} accent={accent}
         amountUnit={amountUnit} fmtHour={shortHour}
         dayStart={(t) => (localHour(t) === 0 ? fWeekday.format(t) : null)}
         colorTemp={(t) => tempColor(t, metric)}
@@ -483,7 +521,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const pct = (t: number) => `${(((t - weekLo) / Math.max(1, weekHi - weekLo)) * 100).toFixed(1)}%`;
   const weekCard = days.length ? (
     <div data-fit style={card('weekStrength')}>
-      {heading('The week', <span style={{ fontSize: '0.8em', opacity: 0.85 }}>{deg(weekLo)} – {deg(weekHi)}</span>)}
+      {heading('The week', WEEK_VIOLET, <span style={{ fontSize: '0.8em', opacity: 0.85 }}>{deg(weekLo)} – {deg(weekHi)}</span>)}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         {days.map((d, i) => {
           const om = precip?.days.get(d.date);

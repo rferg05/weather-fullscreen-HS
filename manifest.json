@@ -1,7 +1,7 @@
 {
   "id": "weather-fullscreen",
   "name": "Weather Full Screen",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A full-screen weather display built to answer \"will it rain while I’m out, when, and how much\": the rain outlook first, a 36-hour chart with rain amounts and sharp temperature swings called out, the sun and moon arc with the time, and the week. Readable from across the room over any background.",
   "author": "Ryan",
   "license": "MIT",
@@ -15,6 +15,8 @@
     "awayEnd": 18,
     "rainLikely": 40,
     "useOpenMeteo": true,
+    "showAirQuality": true,
+    "aqiThreshold": 151,
     "hours": 36,
     "swingThreshold": 10,
     "showSunCard": true,
@@ -48,7 +50,7 @@
       "awayEnabled": {
         "type": "boolean",
         "title": "Mark my time out of the house",
-        "description": "Shades it on the chart and says whether it will rain then.",
+        "description": "Says whether rain falls while you’re out.",
         "ui:widget": "toggle",
         "ui:group": "Rain"
       },
@@ -88,6 +90,23 @@
         "ui:widget": "toggle",
         "ui:group": "Rain"
       },
+      "showAirQuality": {
+        "type": "boolean",
+        "title": "Show air quality when it’s bad",
+        "description": "In the Now card, only during an air-quality alert or when the AQI reaches the level below. From Open-Meteo, free, no key.",
+        "ui:widget": "toggle",
+        "ui:group": "Rain"
+      },
+      "aqiThreshold": {
+        "type": "number",
+        "title": "Show air quality from AQI",
+        "description": "101 is unhealthy for sensitive groups, 151 unhealthy for everyone.",
+        "minimum": 51,
+        "maximum": 300,
+        "ui:widget": "slider",
+        "ui:step": 10,
+        "ui:group": "Rain"
+      },
       "hours": {
         "type": "number",
         "title": "Hours on the chart",
@@ -99,13 +118,13 @@
       },
       "swingThreshold": {
         "type": "number",
-        "title": "Call out temperature swings of (°F)",
-        "description": "A change this big within 3 hours gets a marker, and a note under the current temperature when it’s in the next 12 hours.",
+        "title": "Warn about temperature swings of (°F)",
+        "description": "A change this big within 3 hours, in the next 12 hours, gets a note under the current temperature.",
         "minimum": 3,
         "maximum": 25,
         "ui:widget": "slider",
         "ui:step": 1,
-        "ui:group": "Chart"
+        "ui:group": "Rain"
       },
       "showSunCard": {
         "type": "boolean",
@@ -234,7 +253,7 @@
       "accentColor": {
         "type": "string",
         "title": "Accent color",
-        "description": "The now line, your time out of the house.",
+        "description": "The now line on the chart and the date.",
         "ui:widget": "color",
         "ui:group": "Cards"
       }
@@ -252,6 +271,7 @@
     "network"
   ],
   "allowedDomains": [
-    "api.open-meteo.com"
+    "api.open-meteo.com",
+    "air-quality-api.open-meteo.com"
   ]
 }

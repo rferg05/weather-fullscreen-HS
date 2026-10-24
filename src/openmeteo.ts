@@ -83,3 +83,34 @@ export function usePrecip(enabled: boolean, lat: number | undefined, lng: number
   }, [enabled, lat, lng, metric]);
   return data;
 }
+
+const AIR_REFRESH_MS = 30 * 60_000;
+
+/** The current US AQI from Open-Meteo's air-quality service; null until it
+ *  answers, when off, or when it has no reading for the location. */
+export function useAirQuality(enabled: boolean, lat: number | undefined, lng: number | undefined): number | null {
+  const [aqi, setAqi] = useState<number | null>(null);
+  useEffect(() => {
+    if (!enabled || typeof lat !== 'number' || typeof lng !== 'number') { setAqi(null); return; }
+    const sdk = window.__HS_SDK__;
+    if (!sdk?.pluginFetch) return;
+    const url = 'https://air-quality-api.open-meteo.com/v1/air-quality'
+      + `?latitude=${lat.toFixed(3)}&longitude=${lng.toFixed(3)}&current=us_aqi&timezone=auto`;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await sdk.pluginFetch(PLUGIN_ID, { url, cacheTtlMs: 20 * 60_000 });
+        if (!res.ok) return;
+        const body = await res.json() as { current?: { us_aqi?: number | null } };
+        const v = body.current?.us_aqi;
+        if (!cancelled) setAqi(typeof v === 'number' && Number.isFinite(v) ? v : null);
+      } catch {
+        // Air quality is extra; without it the slot simply stays empty.
+      }
+    };
+    load();
+    const timer = setInterval(load, AIR_REFRESH_MS);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [enabled, lat, lng]);
+  return aqi;
+}

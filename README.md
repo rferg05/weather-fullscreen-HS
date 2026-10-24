@@ -21,17 +21,16 @@ This always points at the newest release. To update: Plugin Store > **Installed*
   - Snow is reported as snow, with its depth.
 - **Next 36 hours** chart:
   - the temperature line, coloured from cold blue to hot red, with the high and low labelled large
-  - night hours shaded, a *now* line, and your time out marked *OUT*
-  - **sharp swings** (10°F or more within 3 hours) marked on the line with a badge, *▼ 14°*
+  - night hours shaded and a *now* line
   - rain as bars sized by **how much** falls each hour, the chance as a dashed line over them, and each spell's total above it
-- **Now**: the temperature, conditions, high and low, *feels like* when it differs by 3° or more, wind with direction and gusts, humidity, UV (daytime) and pressure. A swing in the next 12 hours shows here too: *▼ Dropping 14° to 52° by 3 AM*.
+- **Now**: the date, the temperature, conditions, high and low, and *feels like* when it differs by 3° or more. Wind with direction and gusts, humidity and UV (daytime), each with its icon on a chip of its own color. **Air quality** joins them only when it's bad: during an air-quality alert, or when the US AQI reaches 151 (adjustable), shown with its EPA category and color. A sharp swing (10°F or more within 3 hours) in the next 12 hours shows here too: *▼ Dropping 14° to 52° by 3 AM*.
 - **Sun and moon**: the Sun Arc Clock, with the time, golden hour, a countdown to sunset or sunrise, and the moon's arc at night.
 - **The week**: each day's low-to-high range on one shared scale, with the chance and amount of rain.
 - A weather **alert** banner across the top while a watch or warning is active, and a note when the forecast is stale.
 
 ## Where the numbers come from
 
-Temperatures, conditions, wind and the week come from the weather provider set in Home Screens. That data has the chance of rain but not the amount, so the module asks **Open-Meteo** (free, no key, through the Home Screens server) for hourly and daily rain and snow amounts every 15 minutes. When Open-Meteo answers, both the chance and the amount in the rain outlook and the chart come from it, so the two always agree. With *Rain amounts from Open-Meteo* off, or if it's unreachable, everything falls back to the provider's chance of rain.
+Temperatures, conditions, wind and the week come from the weather provider set in Home Screens. That data has the chance of rain but not the amount, so the module asks **Open-Meteo** (free, no key, through the Home Screens server) for hourly and daily rain and snow amounts every 15 minutes, and its air-quality service for the US AQI every 30 minutes. When Open-Meteo answers, both the chance and the amount in the rain outlook and the chart come from it, so the two always agree. With *Rain amounts from Open-Meteo* off, or if it's unreachable, everything falls back to the provider's chance of rain.
 
 ## Looks
 
@@ -49,14 +48,15 @@ The root text is 30 px on a 1920×1080 module and scales with the smaller of its
 | Count an hour as rainy from | 40% | An hour with a forecast amount counts from half this. |
 | Rain amounts from Open-Meteo | on | |
 | Hours on the chart | 36 | 12–48. |
-| Call out temperature swings of | 10°F | Within 3 hours. |
+| Warn about temperature swings of | 10°F | Within 3 hours, in the next 12. |
+| Show air quality when it's bad / from AQI | on / 151 | Or during an air-quality alert. |
 | Show the sun and moon arc / time inside it | on / on | |
 | Times | Household setting | Or 12-hour or 24-hour. |
 | Text size | 1× | 0.6–1.6×. |
 | Card color / strength per card | near-black / 55% | |
 | Frosted glass / Border | off / off | |
 | Soft shadow behind text | on | |
-| Accent color | amber | The now line and your time out. |
+| Accent color | amber | The now line and the date. |
 
 ## Development
 

@@ -1,11 +1,9 @@
 import React, { useId, useLayoutEffect, useRef, useState } from 'react';
-import type { RainEvent, Swing } from './rain';
+import type { RainEvent } from './rain';
 
 const HOUR = 3_600_000;
 export const RAIN_BLUE = '#38bdf8';
 const SNOW_WHITE = '#e0f2fe';
-const DROP_BLUE = '#7dd3fc';
-const RISE_ORANGE = '#fdba74';
 const NIGHT = 'rgba(2, 6, 23, 0.38)';
 
 export interface ChartHour {
@@ -23,9 +21,6 @@ export interface ChartProps {
   hours: ChartHour[];
   now: number;
   events: RainEvent[];
-  swings: Swing[];
-  /** Time-out-of-the-house windows, [start, end] epoch ms. */
-  away: Array<[number, number]>;
   /** The module's root font size in px: every size here is a multiple of it. */
   fs: number;
   accent: string;
@@ -77,8 +72,8 @@ function fmtAmount(v: number, unit: string): string {
 }
 
 /** The next hours: temperature line with labels and icons, night shaded,
- *  the time out of the house marked, sharp swings called out, and rain as
- *  bars sized by amount with the chance as a dashed line over them. */
+ *  and rain as bars sized by amount with the chance as a dashed line over
+ *  them. */
 export function HoursChart(p: ChartProps) {
   const { ref, w, h } = useBox();
   const ids = useId().replace(/:/g, '');
@@ -98,9 +93,9 @@ export function HoursChart(p: ChartProps) {
     const barsH = Math.max(fs * 2.4, h * 0.22);
     const barsBottom = h - axisH;
     const barsTop = barsBottom - barsH;
-    // Room above the line for the high's label, below it for a swing badge.
+    // Room above the line for the high's label.
     const tempTop = iconSize + fs * 1.7;
-    const tempBottom = barsTop - fs * 1.9;
+    const tempBottom = barsTop - fs * 1.2;
 
     const temps = p.hours.map((x) => x.temp);
     const lo = Math.min(...temps) - 1;
@@ -151,19 +146,6 @@ export function HoursChart(p: ChartProps) {
           <rect key={`n${a}`} x={padX + a * colW} y={0} width={(b - a) * colW} height={barsBottom} fill={NIGHT} rx={fs * 0.3} />
         ))}
 
-        {p.away.map(([a, b]) => {
-          const x0 = Math.max(padX, xT(Math.max(a, t0)));
-          const x1 = Math.min(w - padX, xT(Math.min(b, end)));
-          if (x1 - x0 < colW * 0.5) return null;
-          return (
-            <g key={`a${a}`}>
-              <rect x={x0} y={barsTop - fs * 0.15} width={x1 - x0} height={barsH + fs * 0.15} fill={p.accent} opacity={0.12} rx={fs * 0.25} />
-              <line x1={x0} x2={x1} y1={barsTop - fs * 0.15} y2={barsTop - fs * 0.15} stroke={p.accent} strokeWidth={fs * 0.12} opacity={0.9} />
-              <text x={x0 + fs * 0.3} y={barsBottom - fs * 0.3} fontSize={fs * 0.7} fontWeight={700} fill={p.accent} letterSpacing="0.08em" style={{ filter: shadow }}>OUT</text>
-            </g>
-          );
-        })}
-
         {/* Rain: chance as a dashed line, amount (or chance) as bars. */}
         <line x1={padX} x2={w - padX} y1={barsBottom} y2={barsBottom} stroke="currentColor" strokeOpacity={0.35} strokeWidth={Math.max(1, fs * 0.05)} />
         {p.hours.map((x, i) => {
@@ -196,25 +178,6 @@ export function HoursChart(p: ChartProps) {
         {/* Temperature */}
         <path d={area} fill={`url(#${ids}-fill)`} />
         <path d={line} fill="none" stroke={`url(#${ids}-stroke)`} strokeWidth={fs * 0.22} strokeLinecap="round" strokeLinejoin="round" style={{ filter: shadow }} />
-
-        {p.swings.map((s) => {
-          const a = pts[s.from];
-          const b = pts[s.to];
-          const drop = s.delta < 0;
-          const color = drop ? DROP_BLUE : RISE_ORANGE;
-          const mx = (a[0] + b[0]) / 2;
-          const my = (a[1] + b[1]) / 2;
-          return (
-            <g key={`s${s.from}`} style={{ filter: shadow }}>
-              <circle cx={a[0]} cy={a[1]} r={fs * 0.22} fill={color} />
-              <circle cx={b[0]} cy={b[1]} r={fs * 0.22} fill={color} />
-              <rect x={mx - fs * 1.9} y={my + (drop ? fs * 0.5 : -fs * 1.9)} width={fs * 3.8} height={fs * 1.35} rx={fs * 0.35} fill={color} />
-              <text x={mx} y={my + (drop ? fs * 1.55 : -fs * 0.85)} textAnchor="middle" fontSize={fs * 0.95} fontWeight={800} fill="#0f172a">
-                {drop ? '▼' : '▲'} {Math.abs(Math.round(s.delta))}{'°'}
-              </text>
-            </g>
-          );
-        })}
 
         {[...labelled].map((i) => {
           const big = i === iMax || i === iMin;
