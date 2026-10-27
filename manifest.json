@@ -1,7 +1,7 @@
 {
   "id": "weather-fullscreen",
   "name": "Weather Full Screen",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A full-screen weather display built to answer \"will it rain while I’m out, when, and how much\": the rain outlook first, a 36-hour chart with rain amounts and sharp temperature swings called out, the sun and moon arc with the time, and the week. Readable from across the room over any background.",
   "author": "Ryan",
   "license": "MIT",
@@ -21,6 +21,7 @@
     "swingThreshold": 10,
     "showSunCard": true,
     "showArcClock": true,
+    "showArcCountdown": true,
     "timeFormat": "auto",
     "textScale": 1,
     "cardColor": "#0b1220",
@@ -135,6 +136,13 @@
       "showArcClock": {
         "type": "boolean",
         "title": "Show the time inside the arc",
+        "ui:widget": "toggle",
+        "ui:group": "Layout"
+      },
+      "showArcCountdown": {
+        "type": "boolean",
+        "title": "Show the countdown to sunset / sunrise",
+        "description": "Above the time inside the arc.",
         "ui:widget": "toggle",
         "ui:group": "Layout"
       },

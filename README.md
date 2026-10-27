@@ -50,7 +50,7 @@ The root text is 30 px on a 1920×1080 module and scales with the smaller of its
 | Hours on the chart | 36 | 12–48. |
 | Warn about temperature swings of | 10°F | Within 3 hours, in the next 12. |
 | Show air quality when it's bad / from AQI | on / 151 | Or during an air-quality alert. |
-| Show the sun and moon arc / time inside it | on / on | |
+| Show the sun and moon arc / time inside it / countdown to sunset or sunrise | on / on / on | |
 | Times | Household setting | Or 12-hour or 24-hour. |
 | Text size | 1× | 0.6–1.6×. |
 | Card color / strength per card | near-black / 55% | |

@@ -174,6 +174,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const useOpenMeteo = config.useOpenMeteo !== false;
   const showSunCard = config.showSunCard !== false;
   const showArcClock = config.showArcClock !== false;
+  const showArcCountdown = config.showArcCountdown !== false;
   const textScale = Math.min(1.6, Math.max(0.6, num(config.textScale, 1)));
   const accent = typeof config.accentColor === 'string' && config.accentColor ? config.accentColor : '#fbbf24';
   const cardRgb = hexToRgb(typeof config.cardColor === 'string' ? config.cardColor : '#0b1220');
@@ -561,7 +562,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const sunCard = showSunCard ? (
     <div data-fit style={{ ...card('sunStrength'), padding: '0.4em 0.6em' }}>
       <SunClock
-        config={{ showClock: showArcClock, timeFormat: timeFormat ?? 'auto', softShadow: textShadow }}
+        config={{ showClock: showArcClock, showCountdown: showArcCountdown, timeFormat: timeFormat ?? 'auto', softShadow: textShadow }}
         /* Its own text never smaller than the rest of the screen's small print. */
         style={{ ...style, fontSize: fs * 0.72, backgroundColor: 'transparent', padding: 0, borderRadius: 0, opacity: 1, backdropBlur: 0, borderWidth: 0, shadowSize: 0 }}
         timezone={tz} latitude={lat} longitude={lng} timeFormat={props.timeFormat}
