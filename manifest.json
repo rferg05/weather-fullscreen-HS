@@ -26,7 +26,7 @@
     "livingSky": true,
     "showSunCard": true,
     "showArcClock": true,
-    "showArcCountdown": true,
+    "showArcCountdown": false,
     "timeFormat": "auto",
     "textScale": 1,
     "cardColor": "#0b1220",

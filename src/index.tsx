@@ -123,12 +123,13 @@ function aqiCategory(aqi: number): [string, string] {
 /** Alerts about the air rather than the weather. */
 const AIR_ALERT = /air quality|air stagnation|smoke|ozone|particulate|pm2\.5|unhealthy air/i;
 
-function uvColor(uv: number): string {
-  if (uv < 3) return '#4ade80';
-  if (uv < 6) return '#facc15';
-  if (uv < 8) return '#fb923c';
-  if (uv < 11) return '#f87171';
-  return '#c084fc';
+/** The WHO's UV levels: name and colour. */
+function uvLevel(uv: number): [string, string] {
+  if (uv < 3) return ['Low', '#4ade80'];
+  if (uv < 6) return ['Moderate', '#facc15'];
+  if (uv < 8) return ['High', '#fb923c'];
+  if (uv < 11) return ['Very high', '#f87171'];
+  return ['Extreme', '#c084fc'];
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -203,7 +204,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const useOpenMeteo = config.useOpenMeteo !== false;
   const showSunCard = config.showSunCard !== false;
   const showArcClock = config.showArcClock !== false;
-  const showArcCountdown = config.showArcCountdown !== false;
+  const showArcCountdown = config.showArcCountdown === true;
   const livingSky = config.livingSky !== false;
   const radarOn = config.showRadar !== false;
   const radarLead = Math.min(12, Math.max(1, num(config.radarLeadHours, 3)));
@@ -459,14 +460,15 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
           ), Wind, WIND_TEAL)}
           {current.humidity != null && stat('Humidity', `${Math.round(current.humidity)}%`, Droplets, HUMID_BLUE)}
           {current.uvIndex != null && !isNight(now) && stat('UV index', (
-            <span style={{ display: 'inline-block', padding: '0 0.3em', borderRadius: '0.25em', background: uvColor(current.uvIndex), color: '#111827', textShadow: 'none' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '0.3em' }}>
               {Math.round(current.uvIndex)}
+              <span style={{ fontSize: '0.6em', fontWeight: 700, color: uvLevel(current.uvIndex)[1] }}>{uvLevel(current.uvIndex)[0]}</span>
             </span>
           ), SunIcon, UV_AMBER)}
           {airBad && stat('Air quality', aqi != null ? (
             <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '0.3em' }}>
               {Math.round(aqi)}
-              <span style={{ fontSize: '0.55em', fontWeight: 700, color: airColor, whiteSpace: 'normal' }}>{aqiCategory(aqi)[0]}</span>
+              <span style={{ fontSize: '0.6em', fontWeight: 700, color: airColor, whiteSpace: 'normal' }}>{aqiCategory(aqi)[0]}</span>
             </span>
           ) : <span style={{ color: airColor }}>Alert</span>, Leaf, airColor)}
         </div>

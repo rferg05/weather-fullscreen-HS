@@ -25,7 +25,7 @@ This always points at the newest release. To update: Plugin Store > **Installed*
   - night hours shaded and a *now* line
   - rain as bars sized by **how much** falls each hour, the chance as a dashed line over them, and each spell's total above it
 - **Now**: the date, the temperature, conditions, high and low, and *feels like* when it differs by 3° or more. Wind with direction and gusts, humidity and UV (daytime), each with its icon on a chip of its own color. **Air quality** joins them only when it's bad: during an air-quality alert, or when the US AQI reaches 151 (adjustable), shown with its EPA category and color. A sharp swing (10°F or more within 3 hours) in the next 12 hours shows here too: *▼ Dropping 14° to 52° by 3 AM*.
-- **Sun and moon**: the Sun Arc Clock, with the time, golden hour, a countdown to sunset or sunrise, and the moon's arc at night.
+- **Sun and moon**: the Sun Arc Clock, with the time, golden hour, an optional countdown to sunset or sunrise, and the moon's arc at night.
 - **Living sky** behind everything: Home Screens' animated weather background, following the real sun (day, golden hour, night with stars) and the current weather: drifting clouds, fog, rain that falls lighter or harder with the forecast amount, snow, sleet, and lightning in storms.
 - **The week**: each day's low-to-high range on one shared scale, with the chance and amount of rain.
 - A weather **alert** banner across the top while a watch or warning is active, and a note when the forecast is stale.
@@ -58,7 +58,7 @@ The root text is 30 px on a 1920×1080 module and scales with the smaller of its
 | Warn about temperature swings of | 10°F | Within 3 hours, in the next 12. |
 | Show air quality when it's bad / from AQI | on / 151 | Or during an air-quality alert. |
 | Living sky background | on | In place of the background photo. |
-| Show the sun and moon arc / time inside it / countdown to sunset or sunrise | on / on / on | |
+| Show the sun and moon arc / time inside it / countdown to sunset or sunrise | on / on / off | |
 | Times | Household setting | Or 12-hour or 24-hour. |
 | Text size | 1× | 0.6–1.6×. |
 | Card color / strength per card | near-black / 55% | |
