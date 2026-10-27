@@ -1,5 +1,7 @@
 // Turning hourly forecasts into the two things the screen is for: when it
-// will rain (and how much), and when the temperature will swing sharply.
+// will rain or snow (and how much), and when the temperature will swing sharply.
+
+import type { Falling } from './openmeteo';
 
 export interface WetHour {
   /** Epoch ms at the start of the hour. */
@@ -10,6 +12,8 @@ export interface WetHour {
   rain: number | null;
   /** Snow depth in the hour (in or cm); null when unknown. */
   snow: number | null;
+  /** What falls, when the source says; otherwise read from the amounts. */
+  falling?: Falling | null;
 }
 
 export interface RainEvent {
@@ -24,7 +28,11 @@ export interface RainEvent {
   peakProb: number;
   /** The wettest hour's rain, for "light / moderate / heavy". */
   peakRate: number | null;
-  kind: 'rain' | 'snow' | 'mix';
+  /** The headline: the most hazardous thing that falls. `mix` is rain and
+   *  snow in different hours; `sleet` is both at once. */
+  kind: 'rain' | 'snow' | 'mix' | 'sleet' | 'freezing' | 'storm';
+  /** Thunder anywhere in the spell. */
+  thunder: boolean;
 }
 
 const HOUR = 3_600_000;
@@ -55,14 +63,16 @@ export function rainEvents(hours: WetHour[], o: RainOptions): RainEvent[] {
     if (cur && h.t <= cur.end + HOUR) {
       cur.end = h.t + HOUR;
     } else {
-      cur = { start: h.t, end: h.t + HOUR, rain: null, snow: null, peakProb: 0, peakRate: null, kind: 'rain' };
+      cur = { start: h.t, end: h.t + HOUR, rain: null, snow: null, peakProb: 0, peakRate: null, kind: 'rain', thunder: false };
       events.push(cur);
     }
   }
   // Totals cover every hour inside each event, the lull hours included.
   for (const e of events) {
+    const seen = new Set<Falling>();
     for (const h of sorted) {
       if (h.t < e.start || h.t >= e.end) continue;
+      if (h.falling) seen.add(h.falling);
       e.peakProb = Math.max(e.peakProb, h.prob);
       if (h.rain != null) {
         e.rain = (e.rain ?? 0) + h.rain;
@@ -70,9 +80,15 @@ export function rainEvents(hours: WetHour[], o: RainOptions): RainEvent[] {
       }
       if (h.snow != null) e.snow = (e.snow ?? 0) + h.snow;
     }
-    const snowy = (e.snow ?? 0) > 0;
-    const rainy = (e.rain ?? 0) >= o.minAmount || e.rain == null;
-    e.kind = snowy && !rainy ? 'snow' : snowy ? 'mix' : 'rain';
+    const snowy = (e.snow ?? 0) > 0 || seen.has('snow');
+    const rainy = (e.rain ?? 0) >= o.minAmount || (e.rain == null && !seen.has('snow')) || seen.has('rain') || seen.has('storm');
+    e.thunder = seen.has('storm');
+    e.kind = seen.has('freezing') ? 'freezing'
+      : seen.has('sleet') ? 'sleet'
+      : snowy && !rainy ? 'snow'
+      : snowy ? 'mix'
+      : e.thunder ? 'storm'
+      : 'rain';
   }
   return events;
 }

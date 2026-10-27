@@ -161,6 +161,16 @@ export function moonAltitude(ms: number, lat: number, lng: number): number {
   return h + 0.0002967 / Math.tan(hr + 0.00312536 / (hr + 0.08901179));
 }
 
+/** The sun's altitude above the horizon in degrees (no refraction). */
+export function sunAltitude(ms: number, lat: number, lng: number): number {
+  const lw = RAD * -lng;
+  const phi = RAD * lat;
+  const d = toDays(ms);
+  const c = sunCoords(d);
+  const H = siderealTime(d, lw) - c.ra;
+  return Math.asin(Math.sin(phi) * Math.sin(c.dec) + Math.cos(phi) * Math.cos(c.dec) * Math.cos(H)) / RAD;
+}
+
 export interface MoonPass {
   /** Epoch ms of the moonrise and moonset bounding the pass; null if none
    *  was found within a day and a half (polar summers and winters). */

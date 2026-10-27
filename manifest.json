@@ -1,8 +1,8 @@
 {
   "id": "weather-fullscreen",
   "name": "Weather Full Screen",
-  "version": "1.1.1",
-  "description": "A full-screen weather display built to answer \"will it rain while I’m out, when, and how much\": the rain outlook first, a 36-hour chart with rain amounts and sharp temperature swings called out, the sun and moon arc with the time, and the week. Readable from across the room over any background.",
+  "version": "1.2.0",
+  "description": "A full-screen weather display built to answer \"will it rain or snow while I’m out, when, and how much\": the precipitation outlook first, a 36-hour chart with amounts and sharp temperature swings called out, radar when something is on the way, the sun and moon arc with the time, and the week, over a living sky that matches the weather. Readable from across the room.",
   "author": "Ryan",
   "license": "MIT",
   "minAppVersion": "1.7.1",
@@ -17,8 +17,13 @@
     "useOpenMeteo": true,
     "showAirQuality": true,
     "aqiThreshold": 151,
+    "showRadar": true,
+    "radarLeadHours": 3,
+    "radarSeconds": 20,
+    "radarZoom": 7,
     "hours": 36,
     "swingThreshold": 10,
+    "livingSky": true,
     "showSunCard": true,
     "showArcClock": true,
     "showArcCountdown": true,
@@ -53,7 +58,7 @@
         "title": "Mark my time out of the house",
         "description": "Says whether rain falls while you’re out.",
         "ui:widget": "toggle",
-        "ui:group": "Rain"
+        "ui:group": "Precipitation"
       },
       "awayStart": {
         "type": "number",
@@ -63,7 +68,7 @@
         "maximum": 23,
         "ui:widget": "slider",
         "ui:step": 1,
-        "ui:group": "Rain"
+        "ui:group": "Precipitation"
       },
       "awayEnd": {
         "type": "number",
@@ -72,31 +77,31 @@
         "maximum": 23,
         "ui:widget": "slider",
         "ui:step": 1,
-        "ui:group": "Rain"
+        "ui:group": "Precipitation"
       },
       "rainLikely": {
         "type": "number",
-        "title": "Count an hour as rainy from (% chance)",
+        "title": "Count an hour as wet from (% chance)",
         "description": "Lower it to hear about smaller chances.",
         "minimum": 10,
         "maximum": 90,
         "ui:widget": "slider",
         "ui:step": 5,
-        "ui:group": "Rain"
+        "ui:group": "Precipitation"
       },
       "useOpenMeteo": {
         "type": "boolean",
-        "title": "Rain amounts from Open-Meteo",
-        "description": "Free, no key. Adds how much rain and snow to expect, hour by hour. Off: chance of rain only, from your weather provider.",
+        "title": "Rain and snow amounts from Open-Meteo",
+        "description": "Free, no key. Adds how much rain and snow to expect hour by hour, and tells sleet, freezing rain and storms apart. Off: chance only, from your weather provider.",
         "ui:widget": "toggle",
-        "ui:group": "Rain"
+        "ui:group": "Precipitation"
       },
       "showAirQuality": {
         "type": "boolean",
         "title": "Show air quality when it’s bad",
         "description": "In the Now card, only during an air-quality alert or when the AQI reaches the level below. From Open-Meteo, free, no key.",
         "ui:widget": "toggle",
-        "ui:group": "Rain"
+        "ui:group": "Precipitation"
       },
       "aqiThreshold": {
         "type": "number",
@@ -106,7 +111,42 @@
         "maximum": 300,
         "ui:widget": "slider",
         "ui:step": 10,
-        "ui:group": "Rain"
+        "ui:group": "Precipitation"
+      },
+      "showRadar": {
+        "type": "boolean",
+        "title": "Show radar when precipitation is near",
+        "description": "Takes turns with the chart while rain, snow or storms are falling or due soon, or a weather warning is out.",
+        "ui:widget": "toggle",
+        "ui:group": "Radar"
+      },
+      "radarLeadHours": {
+        "type": "number",
+        "title": "Bring the radar up this many hours ahead",
+        "minimum": 1,
+        "maximum": 12,
+        "ui:widget": "slider",
+        "ui:step": 1,
+        "ui:group": "Radar"
+      },
+      "radarSeconds": {
+        "type": "number",
+        "title": "Seconds on screen for the chart and radar each",
+        "minimum": 8,
+        "maximum": 120,
+        "ui:widget": "slider",
+        "ui:step": 2,
+        "ui:group": "Radar"
+      },
+      "radarZoom": {
+        "type": "number",
+        "title": "Radar zoom",
+        "description": "5 shows a region several states wide, 7 a few hundred miles, 9 the metro area.",
+        "minimum": 5,
+        "maximum": 10,
+        "ui:widget": "slider",
+        "ui:step": 1,
+        "ui:group": "Radar"
       },
       "hours": {
         "type": "number",
@@ -125,7 +165,14 @@
         "maximum": 25,
         "ui:widget": "slider",
         "ui:step": 1,
-        "ui:group": "Rain"
+        "ui:group": "Precipitation"
+      },
+      "livingSky": {
+        "type": "boolean",
+        "title": "Living sky background",
+        "description": "An animated sky that matches the weather and the sun, in place of the background photo: clouds, rain, snow, fog and lightning.",
+        "ui:widget": "toggle",
+        "ui:group": "Layout"
       },
       "showSunCard": {
         "type": "boolean",
@@ -200,7 +247,7 @@
       },
       "rainStrength": {
         "type": "number",
-        "title": "Rain card strength (%)",
+        "title": "Precipitation card strength (%)",
         "minimum": 0,
         "maximum": 100,
         "ui:widget": "slider",
@@ -209,7 +256,7 @@
       },
       "chartStrength": {
         "type": "number",
-        "title": "Chart card strength (%)",
+        "title": "Chart and radar card strength (%)",
         "minimum": 0,
         "maximum": 100,
         "ui:widget": "slider",
@@ -280,6 +327,7 @@
   ],
   "allowedDomains": [
     "api.open-meteo.com",
-    "air-quality-api.open-meteo.com"
+    "air-quality-api.open-meteo.com",
+    "api.librewxr.net"
   ]
 }

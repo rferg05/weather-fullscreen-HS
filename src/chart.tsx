@@ -1,5 +1,6 @@
 import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import type { RainEvent } from './rain';
+import type { Falling } from './openmeteo';
 
 const HOUR = 3_600_000;
 export const RAIN_BLUE = '#38bdf8';
@@ -14,6 +15,8 @@ export interface ChartHour {
   prob: number;
   rain: number | null;
   snow: number | null;
+  /** What falls in the hour, when known. */
+  falling?: Falling | null;
   night: boolean;
 }
 

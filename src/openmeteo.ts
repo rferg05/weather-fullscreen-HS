@@ -9,8 +9,23 @@ export const PLUGIN_ID = 'weather-fullscreen';
 const REFRESH_MS = 15 * 60_000;
 const CACHE_MS = 10 * 60_000;
 
-export interface PrecipHour { prob: number; rain: number; snow: number }
-export interface PrecipDay { prob: number | null; rain: number; snow: number }
+/** What falls: Open-Meteo's weather code says sleet-like freezing rain and
+ *  thunder, which the amounts alone can't. */
+export type Falling = 'rain' | 'snow' | 'sleet' | 'freezing' | 'storm';
+
+export interface PrecipHour { prob: number; rain: number; snow: number; falling: Falling | null }
+export interface PrecipDay { prob: number | null; rain: number; snow: number; falling: Falling | null }
+
+/** The kind of precipitation from a WMO weather code and the amounts. */
+export function fallingFrom(code: number | null | undefined, rain: number, snow: number): Falling | null {
+  const c = code ?? -1;
+  if (c === 56 || c === 57 || c === 66 || c === 67) return 'freezing';
+  if (c >= 95) return 'storm';
+  if (rain > 0 && snow > 0) return 'sleet';
+  if (snow > 0 || (c >= 71 && c <= 77) || c === 85 || c === 86) return 'snow';
+  if (rain > 0 || (c >= 51 && c <= 65) || (c >= 80 && c <= 82)) return 'rain';
+  return null;
+}
 
 export interface Precip {
   /** Keyed by the hour's start, epoch ms. */
@@ -21,8 +36,8 @@ export interface Precip {
 
 interface Raw {
   utc_offset_seconds?: number;
-  hourly?: { time: number[]; precipitation_probability?: (number | null)[]; rain?: (number | null)[]; showers?: (number | null)[]; snowfall?: (number | null)[] };
-  daily?: { time: number[]; precipitation_probability_max?: (number | null)[]; rain_sum?: (number | null)[]; showers_sum?: (number | null)[]; snowfall_sum?: (number | null)[] };
+  hourly?: { time: number[]; weather_code?: (number | null)[]; precipitation_probability?: (number | null)[]; rain?: (number | null)[]; showers?: (number | null)[]; snowfall?: (number | null)[] };
+  daily?: { time: number[]; weather_code?: (number | null)[]; precipitation_probability_max?: (number | null)[]; rain_sum?: (number | null)[]; showers_sum?: (number | null)[]; snowfall_sum?: (number | null)[] };
 }
 
 export function parsePrecip(raw: Raw): Precip {
@@ -31,11 +46,9 @@ export function parsePrecip(raw: Raw): Precip {
   const h = raw.hourly;
   if (h?.time) {
     h.time.forEach((t, i) => {
-      hours.set(t * 1000, {
-        prob: h.precipitation_probability?.[i] ?? 0,
-        rain: (h.rain?.[i] ?? 0) + (h.showers?.[i] ?? 0),
-        snow: h.snowfall?.[i] ?? 0,
-      });
+      const rain = (h.rain?.[i] ?? 0) + (h.showers?.[i] ?? 0);
+      const snow = h.snowfall?.[i] ?? 0;
+      hours.set(t * 1000, { prob: h.precipitation_probability?.[i] ?? 0, rain, snow, falling: fallingFrom(h.weather_code?.[i], rain, snow) });
     });
   }
   const d = raw.daily;
@@ -43,11 +56,9 @@ export function parsePrecip(raw: Raw): Precip {
   if (d?.time) {
     d.time.forEach((t, i) => {
       const date = new Date(t * 1000 + offset).toISOString().slice(0, 10);
-      days.set(date, {
-        prob: d.precipitation_probability_max?.[i] ?? null,
-        rain: (d.rain_sum?.[i] ?? 0) + (d.showers_sum?.[i] ?? 0),
-        snow: d.snowfall_sum?.[i] ?? 0,
-      });
+      const rain = (d.rain_sum?.[i] ?? 0) + (d.showers_sum?.[i] ?? 0);
+      const snow = d.snowfall_sum?.[i] ?? 0;
+      days.set(date, { prob: d.precipitation_probability_max?.[i] ?? null, rain, snow, falling: fallingFrom(d.weather_code?.[i], rain, snow) });
     });
   }
   return { hours, days };
@@ -62,8 +73,8 @@ export function usePrecip(enabled: boolean, lat: number | undefined, lng: number
     if (!sdk?.pluginFetch) return;
     const url = 'https://api.open-meteo.com/v1/forecast'
       + `?latitude=${lat.toFixed(3)}&longitude=${lng.toFixed(3)}`
-      + '&hourly=precipitation_probability,rain,showers,snowfall'
-      + '&daily=precipitation_probability_max,rain_sum,showers_sum,snowfall_sum'
+      + '&hourly=weather_code,precipitation_probability,rain,showers,snowfall'
+      + '&daily=weather_code,precipitation_probability_max,rain_sum,showers_sum,snowfall_sum'
       + '&forecast_days=8&timeformat=unixtime&timezone=auto'
       + (metric ? '' : '&precipitation_unit=inch');
     let cancelled = false;

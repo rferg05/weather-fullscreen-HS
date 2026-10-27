@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { ArrowUp, Droplets, Leaf, TriangleAlert, Umbrella, CircleCheck, Snowflake, Wind, Sun as SunIcon, CalendarDays } from 'lucide-react';
+import { ArrowUp, Droplets, Leaf, TriangleAlert, Umbrella, CircleCheck, Snowflake, Wind, Sun as SunIcon, CalendarDays, CloudLightning, CloudHail } from 'lucide-react';
 import type { PluginComponentProps } from './hs-plugin';
 import { hostFrameStyle } from './host-style';
 import { colorIconComponents } from './color-icons';
@@ -10,7 +10,11 @@ import type { ChartHour } from './chart';
 import { intensity, rainEvents, sharpSwings } from './rain';
 import type { RainEvent } from './rain';
 import { useAirQuality, usePrecip } from './openmeteo';
-import { todaysSunTimes } from './sun/astro';
+import type { Falling } from './openmeteo';
+import { RadarMap, useRadarIndex } from './radar';
+import LivingSky from './sky/LivingSky';
+import { plotScene, skyScene, sunPhase } from './sky/sky-layer';
+import { sunAltitude, todaysSunTimes } from './sun/astro';
 import type { SunTimes } from './sun/astro';
 import SunClock from './sun/index';
 
@@ -80,6 +84,31 @@ const HUMID_BLUE = '#38bdf8';
 const UV_AMBER = '#fbbf24';
 const HOURS_SKY = '#7dd3fc';
 const WEEK_VIOLET = '#c4b5fd';
+const SNOW_ICE = '#bae6fd';
+const SLEET_LILAC = '#a5b4fc';
+const STORM_PURPLE = '#c084fc';
+
+/** What falls, from the provider's icon, for when Open-Meteo is off. */
+function fallingFromIcon(icon: string | undefined): Falling | null {
+  switch (icon) {
+    case 'cloud-snow': case 'snowflake': return 'snow';
+    case 'cloud-lightning': return 'storm';
+    case 'cloud-hail': return 'sleet';
+    case 'cloud-rain': case 'cloud-drizzle': return 'rain';
+    default: return null;
+  }
+}
+
+/** A coloured line icon with a dark outline under it, so it reads over any
+ *  sky or photo without a chip behind it. */
+function OutlinedGlyph({ Glyph, color, size }: { Glyph: React.ComponentType<{ size?: string; strokeWidth?: number; color?: string; style?: CSSProperties }>; color: string; size: string }) {
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0, width: size, height: size }} aria-hidden="true">
+      <Glyph size={size} strokeWidth={4.6} color="rgba(2, 6, 23, 0.82)" style={{ position: 'absolute', inset: 0, overflow: 'visible' }} />
+      <Glyph size={size} strokeWidth={2.4} color={color} style={{ position: 'absolute', inset: 0, overflow: 'visible', filter: 'drop-shadow(0 0.04em 0.08em rgba(0,0,0,0.55))' }} />
+    </span>
+  );
+}
 
 /** The EPA's AQI categories: name and colour. */
 function aqiCategory(aqi: number): [string, string] {
@@ -175,6 +204,11 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const showSunCard = config.showSunCard !== false;
   const showArcClock = config.showArcClock !== false;
   const showArcCountdown = config.showArcCountdown !== false;
+  const livingSky = config.livingSky !== false;
+  const radarOn = config.showRadar !== false;
+  const radarLead = Math.min(12, Math.max(1, num(config.radarLeadHours, 3)));
+  const radarSeconds = Math.min(120, Math.max(8, num(config.radarSeconds, 20)));
+  const radarZoom = Math.round(Math.min(10, Math.max(5, num(config.radarZoom, 7))));
   const textScale = Math.min(1.6, Math.max(0.6, num(config.textScale, 1)));
   const accent = typeof config.accentColor === 'string' && config.accentColor ? config.accentColor : '#fbbf24';
   const cardRgb = hexToRgb(typeof config.cardColor === 'string' ? config.cardColor : '#0b1220');
@@ -275,6 +309,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
       prob: om ? om.prob : x.precipProbability ?? 0,
       rain: om ? om.rain : null,
       snow: om ? om.snow : null,
+      falling: om ? om.falling : fallingFromIcon(x.icon),
       night: isNight(t + HOUR / 2),
     };
   });
@@ -300,6 +335,22 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     .sort((a, b) => (SEVERITY_RANK[a.severity] ?? 4) - (SEVERITY_RANK[b.severity] ?? 4));
   const soon = Array.isArray(props.minutely) ? nowcast(props.minutely as MinutelyPrecip[], now, metric) : null;
 
+  // The radar comes up when something is falling or due within the lead time,
+  // or a weather warning is out, and then takes turns with the chart.
+  const hasLocation = typeof lat === 'number' && typeof lng === 'number';
+  const precipNear = events.some((e) => e.end > now && e.start < now + radarLead * HOUR) || (soon != null && !soon.startsWith('Rain stopping'));
+  const weatherWarning = alerts.some((a) => !AIR_ALERT.test(a.title));
+  const radarWanted = radarOn && hasLocation && (precipNear || weatherWarning);
+  const radarIndex = useRadarIndex(radarWanted);
+  const [radarTurn, setRadarTurn] = useState(false);
+  useEffect(() => {
+    if (!radarWanted) { setRadarTurn(false); return; }
+    setRadarTurn(true);
+    const timer = setInterval(() => setRadarTurn((v) => !v), radarSeconds * 1000);
+    return () => clearInterval(timer);
+  }, [radarWanted, radarSeconds]);
+  const radarShowing = radarWanted && radarTurn;
+
   // ── Styles ──
   const shadow = textShadow ? `0 ${fs * 0.05}px ${fs * 0.14}px rgba(0, 0, 0, 0.6)` : undefined;
   const root: CSSProperties = {
@@ -310,6 +361,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     flexDirection: 'column',
     gap: '0.6em',
     textShadow: shadow,
+    ...(livingSky ? { position: 'relative', overflow: 'hidden', backgroundColor: '#151833' } : {}),
   };
   const card = (key: string): CSSProperties => ({
     overflow: 'hidden',
@@ -349,15 +401,10 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   // ── Now ──
   const swingSoon = swings.find((s) => chartHours[s.from].t < now + 12 * HOUR);
   const feels = current && typeof current.feelsLike === 'number' && Math.abs(current.feelsLike - current.temp) >= 3 ? current.feelsLike : null;
-  /** A reading with its icon on a chip of its own colour. */
-  const stat = (label: string, value: React.ReactNode, Glyph: React.ComponentType<{ size?: string; strokeWidth?: number; color?: string }>, color: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5em', minWidth: 0 }}>
-      <span style={{
-        flexShrink: 0, width: '2.1em', height: '2.1em', borderRadius: '0.55em', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: `${color}38`, boxShadow: `inset 0 0 0 0.08em ${color}80`,
-      }}>
-        <Glyph size="1.25em" strokeWidth={2.4} color={color} aria-hidden="true" />
-      </span>
+  /** A reading with its icon in its own colour. */
+  const stat = (label: string, value: React.ReactNode, Glyph: React.ComponentType<{ size?: string; strokeWidth?: number; color?: string; style?: CSSProperties }>, color: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45em', minWidth: 0 }}>
+      <OutlinedGlyph Glyph={Glyph} color={color} size="1.9em" />
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <span style={{ fontSize: '0.7em', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color }}>{label}</span>
         <span style={{ fontSize: '1.4em', fontWeight: 650, whiteSpace: 'nowrap' }}>{value}</span>
@@ -372,7 +419,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const nowCard = (
     <div data-fit style={{ ...card('nowStrength'), justifyContent: 'space-between', gap: '0.25em' }}>
       <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em', fontSize: '1.1em', fontWeight: 700, color: accent }}>
-        <CalendarDays size="1em" strokeWidth={2.4} aria-hidden="true" />{fLongDate.format(now)}
+        <OutlinedGlyph Glyph={CalendarDays} color={accent} size="1em" />{fLongDate.format(now)}
       </span>
       {current && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3em' }}>
@@ -427,18 +474,35 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     </div>
   );
 
-  // ── Rain: the answer to "do I need an umbrella, and when" ──
+  // ── The week's days, with their chance and amounts ──
+  interface WeekDay { date: string; d: ForecastDay; prob: number; amt: number | null; snow: number; falling: Falling | null; shown: boolean }
+  const DAY_WORD: Record<Falling, string> = { rain: 'rain', snow: 'snow', sleet: 'rain and snow', freezing: 'freezing rain', storm: 'storms' };
+  const weekDays: WeekDay[] = forecast.filter((d) => d.date >= today).slice(0, 7).map((d) => {
+    const om = precip?.days.get(d.date);
+    const prob = om?.prob ?? d.precipProbability ?? 0;
+    const amt = om ? om.rain : d.precipAmount ?? null;
+    const snow = om?.snow ?? 0;
+    const shown = prob >= Math.min(rainLikely, 30) || (amt ?? 0) >= (metric ? 1 : 0.04) || snow >= (metric ? 0.5 : 0.2);
+    return { date: d.date, d, prob, amt, snow, falling: om ? om.falling : fallingFromIcon(d.icon), shown };
+  });
+
+  // ── Precipitation: the answer to "do I need an umbrella (or a scraper), and when" ──
   const upcoming = events.filter((e) => e.end > now);
   const first: RainEvent | undefined = upcoming[0];
   const second: RainEvent | undefined = upcoming[1];
   const dryUntil = chartHours.length ? chartHours[chartHours.length - 1].t + HOUR : now;
-  const word = (e: RainEvent) => (e.kind === 'snow' ? 'Snow' : e.kind === 'mix' ? 'Rain and snow' : 'Rain');
+  const WORD: Record<RainEvent['kind'], string> = {
+    rain: 'Rain', snow: 'Snow', mix: 'Rain and snow', sleet: 'Sleet', freezing: 'Freezing rain', storm: 'Storms',
+  };
+  const word = (e: RainEvent) => WORD[e.kind];
   const howMuch = (e: RainEvent) => {
     const parts: string[] = [];
     if (e.rain != null && e.rain > 0) parts.push(`about ${fmtAmount(e.rain)}`);
     if (e.snow != null && e.snow > 0) parts.push(`${fmtSnow(e.snow)} of snow`);
     const level = e.kind !== 'snow' ? intensity(e.peakRate, metric) : null;
     if (level) parts.push(level);
+    if (e.kind === 'freezing') parts.push('icy');
+    if (e.thunder && e.kind !== 'storm') parts.push('thunder');
     parts.push(`${e.peakProb}% chance`);
     return parts.join(' · ');
   };
@@ -451,21 +515,34 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     rainTitle = `${word(first)} ${first.peakProb >= 70 ? 'likely' : 'possible'} ${range(first.start, first.end)}`;
     rainDetail = howMuch(first);
   } else {
-    rainTitle = 'No rain expected';
-    const later = forecast.find((d) => d.date > localDate(dryUntil) && (d.precipProbability ?? 0) >= rainLikely);
-    rainDetail = `through ${dayWord(dryUntil) || 'today'} ${timeLabel(dryUntil)}${later ? ` · next chance ${fWeekday.format(Date.parse(`${later.date}T12:00:00Z`))}, ${later.precipProbability}%` : ''}`;
+    // Snow joins the headline once it's cold enough for it.
+    const cold = chartHours.some((x) => x.temp <= (metric ? 3.5 : 38)) || forecast.slice(0, 7).some((d) => d.low <= (metric ? 1 : 34));
+    rainTitle = cold ? 'No rain or snow expected' : 'No rain expected';
+    // The days after the chart, read exactly as the week card reads them, so
+    // the two cards always agree: the first day the week marks wet, and the
+    // first likely one when that comes later.
+    const past = localDate(dryUntil - 1);
+    const laterDays = weekDays.filter((d) => d.date > past && d.shown);
+    const nextDay = laterDays[0];
+    const likelyDay = laterDays.find((d) => d.prob >= rainLikely);
+    const dayNote = (d: WeekDay) => `${fWeekday.format(Date.parse(`${d.date}T12:00:00Z`))}, ${d.prob}%${d.falling && d.falling !== 'rain' ? ` ${DAY_WORD[d.falling]}` : ''}`;
+    rainDetail = `through ${dayWord(dryUntil) || 'today'} ${timeLabel(dryUntil)}`
+      + (nextDay ? ` · next chance ${dayNote(nextDay)}` : '')
+      + (likelyDay && likelyDay !== nextDay ? ` · likelier ${dayNote(likelyDay)}` : '');
   }
   // The next stretch out of the house, and whether rain falls in it.
   const nextAway = away.find(([, b]) => b > now);
   const awayHit = nextAway ? upcoming.find((e) => e.start < nextAway[1] && e.end > nextAway[0]) : undefined;
   const awayLabel = nextAway ? `${dayWord(Math.max(nextAway[0], now)) ? `${dayWord(Math.max(nextAway[0], now))} ` : ''}${timeLabel(nextAway[0])}–${timeLabel(nextAway[1])}` : '';
   const wet = !!first && first.start < now + 24 * HOUR;
-  const RainGlyph = first?.kind === 'snow' ? Snowflake : wet ? Umbrella : CircleCheck;
-  const rainCard = (
+  const kind = first?.kind;
+  const RainGlyph = !wet ? CircleCheck : kind === 'snow' ? Snowflake : kind === 'storm' ? CloudLightning : kind === 'sleet' || kind === 'freezing' || kind === 'mix' ? CloudHail : Umbrella;
+  const badge = !wet ? '#4ade80' : kind === 'snow' ? SNOW_ICE : kind === 'storm' ? STORM_PURPLE : kind === 'sleet' || kind === 'freezing' || kind === 'mix' ? SLEET_LILAC : RAIN_BLUE;
+  const precipCard = (
     <div data-fit style={{ ...card('rainStrength'), flexDirection: 'row', alignItems: 'center', gap: '0.8em' }}>
       <div style={{
         flexShrink: 0, width: '3.2em', height: '3.2em', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: wet ? RAIN_BLUE : '#4ade80', color: '#0f172a',
+        background: badge, color: '#0f172a',
       }}>
         <RainGlyph size="1.9em" strokeWidth={2.25} aria-hidden="true" />
       </div>
@@ -474,7 +551,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
         <span style={{ fontSize: '1.15em', opacity: 0.9 }}>{rainDetail}</span>
         {(soon || second || nextAway) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4em 0.8em', marginTop: '0.15em', fontSize: '1.05em', fontWeight: 700 }}>
-            {soon && <span style={{ color: RAIN_BLUE }}>{soon}</span>}
+            {soon && <span style={{ color: badge === '#4ade80' ? RAIN_BLUE : badge }}>{soon}</span>}
             {nextAway && (awayHit ? (
               <span style={{ padding: '0.05em 0.5em', borderRadius: '0.35em', background: accent, color: '#0f172a', textShadow: 'none' }}>
                 While you're out ({awayLabel}): {awayHit.start <= nextAway[0] ? 'wet from the start' : `from ${timeLabel(awayHit.start)}`}
@@ -491,7 +568,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
 
   // ── The next hours ──
   const chartCard = (
-    <div data-fit style={card('chartStrength')}>
+    <div data-fit style={{ ...card('chartStrength'), gridArea: '1 / 1', opacity: radarShowing ? 0 : 1, transition: 'opacity 1s ease' }}>
       {heading(`Next ${chartHours.length} hours`, HOURS_SKY, (
         <span style={{ display: 'flex', gap: '1em', fontSize: '0.72em', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.9 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
@@ -515,8 +592,21 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     </div>
   );
 
+  // ── Radar ──
+  const radarCard = radarWanted && hasLocation ? (
+    <div style={{ ...card('chartStrength'), gridArea: '1 / 1', opacity: radarShowing ? 1 : 0, transition: 'opacity 1s ease', pointerEvents: 'none' }}>
+      {heading('Radar', HOURS_SKY, (
+        <span style={{ fontSize: '0.8em', fontWeight: 700, opacity: 0.9 }}>
+          {first && first.start <= now ? `${word(first)} now` : first ? `${word(first)} from ${timeLabel(first.start)}` : alerts[0]?.title ?? ''}
+        </span>
+      ))}
+      <RadarMap index={radarIndex} lat={lat as number} lng={lng as number} zoom={radarZoom} scale={Math.max(1, fs / 20)} accent={accent}
+        fmtTime={timeLabel} running={radarShowing} />
+    </div>
+  ) : null;
+
   // ── The week ──
-  const days = forecast.filter((d) => d.date >= today).slice(0, 7);
+  const days = weekDays.map((w) => w.d);
   const weekLo = Math.min(...days.map((d) => d.low));
   const weekHi = Math.max(...days.map((d) => d.high));
   const pct = (t: number) => `${(((t - weekLo) / Math.max(1, weekHi - weekLo)) * 100).toFixed(1)}%`;
@@ -524,12 +614,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     <div data-fit style={card('weekStrength')}>
       {heading('The week', WEEK_VIOLET, <span style={{ fontSize: '0.8em', opacity: 0.85 }}>{deg(weekLo)} – {deg(weekHi)}</span>)}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        {days.map((d, i) => {
-          const om = precip?.days.get(d.date);
-          const prob = om?.prob ?? d.precipProbability ?? 0;
-          const amt = om ? om.rain : d.precipAmount ?? null;
-          const snow = om?.snow ?? 0;
-          const showRain = prob >= Math.min(rainLikely, 30) || (amt ?? 0) >= (metric ? 1 : 0.04);
+        {weekDays.map(({ d, prob, amt, snow, shown: showRain }, i) => {
           return (
             <div key={d.date} style={{ display: 'grid', gridTemplateColumns: '3.6em 1.4em 6.6em 2.4em 1fr 2.4em', alignItems: 'center', columnGap: '0.6em', fontSize: '1.05em' }}>
               <span style={{ fontWeight: i === 0 ? 800 : 600 }}>{i === 0 ? 'Today' : fWeekday.format(Date.parse(`${d.date}T12:00:00Z`))}</span>
@@ -562,7 +647,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const sunCard = showSunCard ? (
     <div data-fit style={{ ...card('sunStrength'), padding: '0.4em 0.6em' }}>
       <SunClock
-        config={{ showClock: showArcClock, showCountdown: showArcCountdown, timeFormat: timeFormat ?? 'auto', softShadow: textShadow }}
+        config={{ showClock: showArcClock, showCountdown: showArcCountdown, showPhaseIcon: false, timeFormat: timeFormat ?? 'auto', softShadow: textShadow }}
         /* Its own text never smaller than the rest of the screen's small print. */
         style={{ ...style, fontSize: fs * 0.72, backgroundColor: 'transparent', padding: 0, borderRadius: 0, opacity: 1, backdropBlur: 0, borderWidth: 0, shadowSize: 0 }}
         timezone={tz} latitude={lat} longitude={lng} timeFormat={props.timeFormat}
@@ -578,30 +663,46 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     return age >= 2 ? `Forecast is ${age} h old` : null;
   })();
 
+  // What's falling right now, and how hard, for the sky.
+  const nowHour = chartHours[0];
+  const nowWet = first != null && first.start <= now;
+  const skyNow = livingSky
+    ? plotScene(
+      skyScene(current?.icon, sunPhase(hasLocation ? sunAltitude(now, lat as number, lng as number) : null)),
+      nowWet ? (nowHour?.falling ?? (first?.kind === 'snow' ? 'snow' : 'rain')) : null,
+      nowWet ? (intensity(nowHour?.rain ?? null, metric) as 'light' | 'moderate' | 'heavy' | null) : null,
+    )
+    : null;
+  const layer: CSSProperties = livingSky ? { position: 'relative', zIndex: 1 } : {};
+
   return (
     <div ref={boxRef} style={root}>
+      {skyNow && <LivingSky scene={skyNow} />}
       {alerts.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '0.5em', flexShrink: 0, padding: '0.35em 0.8em', borderRadius: '0.6em',
-          background: SEVERITY_COLOR[alerts[0].severity] ?? SEVERITY_COLOR.Unknown, color: '#ffffff', fontSize: '1.2em', fontWeight: 700,
+          background: SEVERITY_COLOR[alerts[0].severity] ?? SEVERITY_COLOR.Unknown, color: '#ffffff', fontSize: '1.2em', fontWeight: 700, ...layer,
         }}>
           <TriangleAlert size="1.2em" strokeWidth={2.4} aria-hidden="true" />
           <span style={{ minWidth: 0 }}>{alerts[0].title}</span>
           {alerts.length > 1 && <span style={{ marginLeft: 'auto', whiteSpace: 'nowrap', opacity: 0.9 }}>+{alerts.length - 1} more</span>}
         </div>
       )}
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '34fr 66fr', gap: '0.6em' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '34fr 66fr', gap: '0.6em', ...layer }}>
         <div style={{ display: 'grid', gridTemplateRows: showSunCard ? 'minmax(0, 1.35fr) minmax(0, 1fr)' : '1fr', gap: '0.6em', minHeight: 0 }}>
           {nowCard}
           {sunCard}
         </div>
         <div style={{ display: 'grid', gridTemplateRows: weekCard ? 'auto minmax(0, 1.45fr) minmax(0, 1fr)' : 'auto minmax(0, 1fr)', gap: '0.6em', minHeight: 0 }}>
-          {rainCard}
-          {chartCard}
+          {precipCard}
+          <div style={{ display: 'grid', gridTemplate: 'minmax(0, 1fr) / minmax(0, 1fr)', minHeight: 0 }}>
+            {chartCard}
+            {radarCard}
+          </div>
           {weekCard}
         </div>
       </div>
-      {stale && <div style={{ alignSelf: 'flex-end', fontSize: '0.8em', opacity: 0.85, flexShrink: 0 }}>{stale}</div>}
+      {stale && <div style={{ alignSelf: 'flex-end', fontSize: '0.8em', opacity: 0.85, flexShrink: 0, ...layer }}>{stale}</div>}
     </div>
   );
 }

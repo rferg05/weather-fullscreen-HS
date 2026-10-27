@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { intensity, rainEvents, sharpSwings } from './rain';
 import type { WetHour } from './rain';
+import { fallingFrom } from './openmeteo';
+import type { Falling } from './openmeteo';
 
 const H = 3_600_000;
 const T0 = Date.parse('2026-10-23T12:00:00Z');
@@ -41,6 +43,23 @@ describe('rain events', () => {
   it('tells snow from rain', () => {
     expect(rainEvents(hours([[70, 0, 1.2], [70, 0, 0.8]]), opts)[0].kind).toBe('snow');
     expect(rainEvents(hours([[70, 0.1, 0.5]]), opts)[0].kind).toBe('mix');
+  });
+
+  it('names sleet, freezing rain and storms from what falls', () => {
+    const kinds = (...f: Array<Falling | null>) => rainEvents(hours(f.map(() => [70, 0.1] as [number, number])).map((h, i) => ({ ...h, falling: f[i] })), opts)[0];
+    expect(kinds('rain', 'sleet', 'snow').kind).toBe('sleet');
+    expect(kinds('rain', 'freezing', 'sleet').kind).toBe('freezing');
+    expect(kinds('rain', 'storm').kind).toBe('storm');
+    expect(kinds('rain', 'storm').thunder).toBe(true);
+    expect(kinds('rain', 'rain').thunder).toBe(false);
+  });
+
+  it('reads the kind from weather codes and amounts', () => {
+    expect(fallingFrom(66, 0.1, 0)).toBe('freezing');
+    expect(fallingFrom(95, 0.3, 0)).toBe('storm');
+    expect(fallingFrom(73, 0, 0)).toBe('snow');
+    expect(fallingFrom(61, 0.05, 0.2)).toBe('sleet');
+    expect(fallingFrom(3, 0, 0)).toBeNull();
   });
 
   it('rates intensity from the wettest hour', () => {
