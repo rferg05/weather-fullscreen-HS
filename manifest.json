@@ -27,6 +27,8 @@
     "showSunCard": true,
     "showArcClock": true,
     "showArcCountdown": false,
+    "showGoTips": true,
+    "showSunDetails": true,
     "timeFormat": "auto",
     "textScale": 1,
     "cardColor": "#0b1220",
@@ -190,6 +192,20 @@
         "type": "boolean",
         "title": "Show the countdown to sunset / sunrise",
         "description": "Above the time inside the arc.",
+        "ui:widget": "toggle",
+        "ui:group": "Layout"
+      },
+      "showGoTips": {
+        "type": "boolean",
+        "title": "Show what to bring (jacket, umbrella, sunscreen)",
+        "description": "From the next 12 hours, in the current-weather card.",
+        "ui:widget": "toggle",
+        "ui:group": "Layout"
+      },
+      "showSunDetails": {
+        "type": "boolean",
+        "title": "Show day length and tonight's moon",
+        "description": "Under the sunrise and sunset times.",
         "ui:widget": "toggle",
         "ui:group": "Layout"
       },

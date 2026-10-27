@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { ArrowUp, Droplets, Leaf, TriangleAlert, Umbrella, CircleCheck, Snowflake, Wind, Sun as SunIcon, CalendarDays, CloudLightning, CloudHail } from 'lucide-react';
+import { ArrowUp, Droplets, Leaf, TriangleAlert, Umbrella, CircleCheck, Snowflake, Wind, Sun as SunIcon, CalendarDays, CloudLightning, CloudHail, Thermometer, Shirt, Moon, Hourglass } from 'lucide-react';
 import type { PluginComponentProps } from './hs-plugin';
 import { hostFrameStyle } from './host-style';
 import { colorIconComponents } from './color-icons';
@@ -14,7 +14,7 @@ import type { Falling } from './openmeteo';
 import { RadarMap, useRadarIndex } from './radar';
 import LivingSky from './sky/LivingSky';
 import { plotScene, skyScene, sunPhase } from './sky/sky-layer';
-import { sunAltitude, todaysSunTimes } from './sun/astro';
+import { sunAltitude, todaysSunTimes, moonPhase, moonPhaseName, moonPass } from './sun/astro';
 import type { SunTimes } from './sun/astro';
 import SunClock from './sun/index';
 
@@ -205,6 +205,8 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const showSunCard = config.showSunCard !== false;
   const showArcClock = config.showArcClock !== false;
   const showArcCountdown = config.showArcCountdown === true;
+  const showGoTips = config.showGoTips !== false;
+  const showSunDetails = config.showSunDetails !== false;
   const livingSky = config.livingSky !== false;
   const radarOn = config.showRadar !== false;
   const radarLead = Math.min(12, Math.max(1, num(config.radarLeadHours, 3)));
@@ -401,7 +403,6 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
 
   // ── Now ──
   const swingSoon = swings.find((s) => chartHours[s.from].t < now + 12 * HOUR);
-  const feels = current && typeof current.feelsLike === 'number' && Math.abs(current.feelsLike - current.temp) >= 3 ? current.feelsLike : null;
   /** A reading with its icon in its own colour. */
   const stat = (label: string, value: React.ReactNode, Glyph: React.ComponentType<{ size?: string; strokeWidth?: number; color?: string; style?: CSSProperties }>, color: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.45em', minWidth: 0 }}>
@@ -417,6 +418,22 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const airAlert = alerts.find((a) => AIR_ALERT.test(a.title));
   const airBad = airOn && (airAlert != null || (aqi != null && aqi >= aqiAt));
   const airColor = aqi != null ? aqiCategory(aqi)[1] : '#fb923c';
+  // "Before you go": what to bring, from the next 12 hours.
+  const goTips = (() => {
+    if (!showGoTips || !current) return '';
+    const next12 = chartHours.filter((h) => h.t < now + 12 * HOUR);
+    const lo = Math.min(current.temp, ...next12.map((h) => h.temp));
+    const wet = next12.find((h) => h.prob >= rainLikely);
+    const tips: string[] = [];
+    tips.push(lo < (metric ? 4 : 40) ? 'Warm coat' : lo < (metric ? 12 : 55) ? 'Jacket' : lo < (metric ? 17 : 63) ? 'Light jacket' : 'No jacket');
+    if (wet) {
+      // Snow and ice call for boots rather than an umbrella.
+      const gear = wet.falling === 'snow' || wet.falling === 'sleet' || wet.falling === 'freezing' || (wet.snow ?? 0) > 0 ? 'Boots' : 'Umbrella';
+      tips.push(wet.t <= now + HOUR ? gear : `${gear} by ${timeLabel(wet.t)}`);
+    }
+    if ((current.uvIndex ?? 0) >= 6) tips.push('Sunscreen');
+    return tips.join(' · ');
+  })();
   const nowCard = (
     <div data-fit style={{ ...card('nowStrength'), justifyContent: 'space-between', gap: '0.25em' }}>
       <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em', fontSize: '1.1em', fontWeight: 700, color: accent }}>
@@ -437,8 +454,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
               <span style={{ marginLeft: '0.6em', color: LOW_BLUE, fontWeight: 700 }}>L</span> {deg(todayFc.low)}
             </>
           )}
-          {feels != null && <span style={{ marginLeft: '0.9em', opacity: 0.85 }}>Feels like {deg(feels)}</span>}
-        </span>
+                  </span>
         {swingSoon && (
           <span style={{
             alignSelf: 'flex-start', marginTop: '0.2em', padding: '0.15em 0.55em', borderRadius: '0.4em', fontSize: '1.05em', fontWeight: 800,
@@ -448,6 +464,11 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
           </span>
         )}
       </div>
+      {goTips && (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em', fontSize: '1.2em', fontWeight: 700 }}>
+          <OutlinedGlyph Glyph={Shirt} color="#a3e635" size="1.2em" />{goTips}
+        </span>
+      )}
       {current && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '1em', rowGap: '0.3em' }}>
           {current.windSpeed != null && stat('Wind', (
@@ -465,6 +486,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
               <span style={{ fontSize: '0.6em', fontWeight: 700, color: uvLevel(current.uvIndex)[1] }}>{uvLevel(current.uvIndex)[0]}</span>
             </span>
           ), SunIcon, UV_AMBER)}
+          {stat('Feels like', deg(current.feelsLike ?? current.temp), Thermometer, '#f472b6')}
           {airBad && stat('Air quality', aqi != null ? (
             <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '0.3em' }}>
               {Math.round(aqi)}
@@ -654,6 +676,28 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
         style={{ ...style, fontSize: fs * 0.72, backgroundColor: 'transparent', padding: 0, borderRadius: 0, opacity: 1, backdropBlur: 0, borderWidth: 0, shadowSize: 0 }}
         timezone={tz} latitude={lat} longitude={lng} timeFormat={props.timeFormat}
       />
+      {showSunDetails && hasLocation && (() => {
+        const today = todaysSunTimes(now, lat as number, lng as number, tz);
+        const yday = todaysSunTimes(now - 24 * HOUR, lat as number, lng as number, tz);
+        const len = (t: SunTimes) => (t.sunset ?? 0) - (t.sunrise ?? 0);
+        const mins = Math.round(len(today) / 60_000);
+        const diff = Math.round((len(today) - len(yday)) / 60_000);
+        const mp = moonPhase(now);
+        const pass = moonPass(now, lat as number, lng as number);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15em', fontSize: '1.05em', fontWeight: 650, whiteSpace: 'nowrap', padding: '0.2em 0.3em 0.1em' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35em' }}>
+              <OutlinedGlyph Glyph={Hourglass} color={accent} size="1.1em" />
+              {Math.floor(mins / 60)}h {mins % 60}m<span style={{ fontSize: '0.8em', opacity: 0.85 }}>· {Math.abs(diff)} min {diff < 0 ? 'shorter' : 'longer'}</span>
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35em' }}>
+              <OutlinedGlyph Glyph={Moon} color="#c4b5fd" size="1.1em" />
+              {moonPhaseName(mp.phase)} {Math.round(mp.fraction * 100)}%
+              {!pass.up && pass.rise != null && <span style={{ fontSize: '0.8em', opacity: 0.85 }}>· rises {timeLabel(pass.rise)}</span>}
+            </span>
+          </div>
+        );
+      })()}
     </div>
   ) : null;
 

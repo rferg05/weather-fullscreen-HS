@@ -24,8 +24,8 @@ This always points at the newest release. To update: Plugin Store > **Installed*
   - the temperature line, coloured from cold blue to hot red, with the high and low labelled large
   - night hours shaded and a *now* line
   - rain as bars sized by **how much** falls each hour, the chance as a dashed line over them, and each spell's total above it
-- **Now**: the date, the temperature, conditions, high and low, and *feels like* when it differs by 3° or more. Wind with direction and gusts, humidity and UV (daytime), each with its icon on a chip of its own color. **Air quality** joins them only when it's bad: during an air-quality alert, or when the US AQI reaches 151 (adjustable), shown with its EPA category and color. A sharp swing (10°F or more within 3 hours) in the next 12 hours shows here too: *▼ Dropping 14° to 52° by 3 AM*.
-- **Sun and moon**: the Sun Arc Clock, with the time, golden hour, an optional countdown to sunset or sunrise, and the moon's arc at night.
+- **Now**: the date, the temperature, conditions, high and low, and what to bring: *Light jacket · Umbrella by 7 PM*. Wind with direction and gusts, humidity, feels like and UV (daytime, with its level: *3 Moderate*), each with an outlined icon in its own color. **Air quality** joins them only when it's bad: during an air-quality alert, or when the US AQI reaches 151 (adjustable), shown with its EPA category and color. A sharp swing (10°F or more within 3 hours) in the next 12 hours shows here too: *▼ Dropping 14° to 52° by 3 AM*.
+- **Sun and moon**: the Sun Arc Clock, with the time, golden hour, an optional countdown to sunset or sunrise, and the moon's arc at night. Under it, the day's length and how it's changing (*10h 35m · 3 min shorter*) and tonight's moon (*Waning gibbous 96% · rises 6:22 PM*).
 - **Living sky** behind everything: Home Screens' animated weather background, following the real sun (day, golden hour, night with stars) and the current weather: drifting clouds, fog, rain that falls lighter or harder with the forecast amount, snow, sleet, and lightning in storms.
 - **The week**: each day's low-to-high range on one shared scale, with the chance and amount of rain.
 - A weather **alert** banner across the top while a watch or warning is active, and a note when the forecast is stale.
@@ -38,7 +38,7 @@ Temperatures, conditions, wind and the week come from the weather provider set i
 
 With the living sky on, it fills the module in place of the background photo; turn it off to put your photo back. The sky's pictures are served by Home Screens itself (1.14.0 and later).
 
-Each section is a card, styled like the full-screen calendar's day cards: a card color, a **strength per card** (0 is fully clear, 100 solid) so you choose where the background photo shows through, an optional frosted-glass blur and border, and a soft shadow behind text that keeps it readable when a card is mostly clear. Text isn't outlined; the colored icons for wind, humidity, UV and air quality have a dark outline so they read over any background.
+Each section is a card, styled like the full-screen calendar's day cards: a card color, a **strength per card** (0 is fully clear, 100 solid) so you choose where the background photo shows through, an optional frosted-glass blur and border, and a soft shadow behind text that keeps it readable when a card is mostly clear. Text isn't outlined; the colored icons for wind, humidity, feels like, UV and air quality have a dark outline so they read over any background.
 
 ## Sizing
 
@@ -59,6 +59,8 @@ The root text is 30 px on a 1920×1080 module and scales with the smaller of its
 | Show air quality when it's bad / from AQI | on / 151 | Or during an air-quality alert. |
 | Living sky background | on | In place of the background photo. |
 | Show the sun and moon arc / time inside it / countdown to sunset or sunrise | on / on / off | |
+| Show what to bring | on | *Light jacket · Umbrella by 7 PM*: a jacket from the coldest of the next 12 hours, an umbrella if rain is likely (boots for snow or ice), sunscreen from UV 6. |
+| Show day length and tonight's moon | on | Under the sunrise and sunset times. |
 | Times | Household setting | Or 12-hour or 24-hour. |
 | Text size | 1× | 0.6–1.6×. |
 | Card color / strength per card | near-black / 55% | |
