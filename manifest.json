@@ -1,7 +1,7 @@
 {
   "id": "weather-fullscreen",
   "name": "Weather Full Screen",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "A full-screen weather display built to answer \"will it rain or snow while I’m out, when, and how much\": the precipitation outlook first, a 36-hour chart with amounts and sharp temperature swings called out, radar when something is on the way, the sun and moon arc with the time, and the week, over a living sky that matches the weather. Readable from across the room.",
   "author": "Ryan",
   "license": "MIT",
