@@ -764,10 +764,10 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   // ── Sun and moon: the Sun Arc Clock, inside a card ──
   const sunCard = showSunCard ? (
     <div data-fit style={{ ...card('sunStrength'), padding: '0.4em 0.6em' }}>
-      {/* Tonight's moon, above the arc. */}
+      {/* The moon, above the arc, while it's up. */}
       {showSunDetails && hasLocation && (() => {
         const mp = moonPhase(now);
-        const pass = moonPass(now, lat as number, lng as number);
+        if (!moonPass(now, lat as number, lng as number).up) return null;
         return (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.7em', flexShrink: 0, fontWeight: 650, whiteSpace: 'nowrap', padding: '0.15em 0.3em 0.2em' }}>
             <MoonPicture phase={mp.phase} size={skyNowEvent ? "3.6em" : "4.6em"} mirror={(lat as number) < 0} />
@@ -775,7 +775,6 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
               <span style={{ fontSize: '1.3em', fontWeight: 800 }}>{moonPhaseName(mp.phase)}</span>
               <span style={{ fontSize: '1.05em', opacity: 0.92 }}>
                 {Math.round(mp.fraction * 100)}% lit
-                {!pass.up && pass.rise != null && <span style={{ opacity: 0.85 }}> · rises {timeLabel(pass.rise)}</span>}
               </span>
             </div>
           </div>

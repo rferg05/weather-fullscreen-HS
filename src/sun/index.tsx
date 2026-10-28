@@ -241,9 +241,11 @@ function Scene({ w, h, fs, config, clock, rise, set, progress, phase, moon, mirr
   const iconY = horizonY + below + (blockH - iconSize) / 2;
   const showArrows = !config.showSideIcons;
   const halfLine = R + fs * 1.4;
+  // When the width caps the arc, split the spare height above and below it.
+  const lift = Math.max(0, horizonY - topSpace - R) / 2;
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="currentColor"
+    <svg width={w} height={h} viewBox={`0 ${lift} ${w} ${h}`} fill="currentColor"
       style={{ display: 'block', overflow: 'visible', filter: config.softShadow ? 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55))' : undefined }}>
       <defs>
         <radialGradient id={glowId}>

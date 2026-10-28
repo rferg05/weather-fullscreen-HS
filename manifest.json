@@ -211,7 +211,7 @@
       "showSunDetails": {
         "type": "boolean",
         "title": "Show tonight's moon",
-        "description": "A picture of the moon's phase above the arc, with its name and how much is lit.",
+        "description": "While the moon is up: a picture of its phase above the arc, with its name and how much is lit.",
         "ui:widget": "toggle",
         "ui:group": "Layout"
       },
