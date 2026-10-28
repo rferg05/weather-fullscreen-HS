@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { ArrowUp, Droplets, Leaf, TriangleAlert, Umbrella, CircleCheck, Snowflake, Wind, Sun as SunIcon, CalendarDays, CloudLightning, CloudHail, Thermometer, Shirt, Moon, Hourglass } from 'lucide-react';
+import { ArrowUp, Droplets, Leaf, TriangleAlert, Umbrella, CircleCheck, Snowflake, Wind, Sun as SunIcon, CalendarDays, CloudLightning, CloudHail, Thermometer, Shirt, Hourglass, Sparkles, Eclipse, Telescope, Rainbow } from 'lucide-react';
 import type { PluginComponentProps } from './hs-plugin';
 import { hostFrameStyle } from './host-style';
 import { colorIconComponents } from './color-icons';
@@ -17,6 +17,9 @@ import { plotScene, skyScene, sunPhase } from './sky/sky-layer';
 import { sunAltitude, todaysSunTimes, moonPhase, moonPhaseName, moonPass } from './sun/astro';
 import type { SunTimes } from './sun/astro';
 import SunClock from './sun/index';
+import { MoonPicture } from './moon-picture';
+import { auroraEvent, cometEvents, eclipseEvents, meteorEvents, useComets, useKpForecast } from './skyevents';
+import type { SkyEvent, SkyFormat, SkyKind } from './skyevents';
 
 // ── Data the host injects when dataRequirements includes "weather" ──
 
@@ -57,6 +60,11 @@ const LOW_BLUE = '#60a5fa';
 const SEVERITY_COLOR: Record<string, string> = {
   Extreme: '#b91c1c', Severe: '#dc2626', Moderate: '#d97706', Minor: '#a16207', Unknown: '#475569',
 };
+const SKY_STYLE: Record<SkyKind, [string, React.ComponentType<{ size?: string; strokeWidth?: number; color?: string; style?: CSSProperties }>]> = {
+  eclipse: ['#fbbf24', Eclipse], meteor: ['#a5b4fc', Sparkles], comet: ['#67e8f9', Telescope], aurora: ['#4ade80', Rainbow],
+};
+/** Eclipse searches take a moment, so they run once an hour per place. */
+let eclipseCache: { key: string; events: SkyEvent[] } | null = null;
 const SEVERITY_RANK: Record<string, number> = { Extreme: 0, Severe: 1, Moderate: 2, Minor: 3, Unknown: 4 };
 
 const TEMP_STOPS: Array<[number, [number, number, number]]> = [
@@ -208,6 +216,12 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const showGoTips = config.showGoTips !== false;
   const showSunDetails = config.showSunDetails !== false;
   const livingSky = config.livingSky !== false;
+  const skyOn = config.showSkyEvents !== false;
+  const skyEclipses = skyOn && config.skyEclipses !== false;
+  const skyMeteors = skyOn && config.skyMeteors !== false;
+  const skyComets = skyOn && config.skyComets !== false;
+  const skyAurora = skyOn && config.skyAurora !== false;
+  const cometMag = Math.min(10, Math.max(3, num(config.cometMagnitude, 7)));
   const radarOn = config.showRadar !== false;
   const radarLead = Math.min(12, Math.max(1, num(config.radarLeadHours, 3)));
   const radarSeconds = Math.min(120, Math.max(8, num(config.radarSeconds, 20)));
@@ -228,9 +242,16 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const aqiAt = Math.min(300, Math.max(51, num(config.aqiThreshold, 151)));
   const aqi = useAirQuality(airOn, lat, lng);
 
+  // What's on screen changes after the first render (an alert, a sky event,
+  // new outlook text); the render records it here and the fit restarts.
+  const contentRef = useRef('');
+  const [contentKey, setContentKey] = useState('');
+  useEffect(() => {
+    if (contentRef.current !== contentKey) setContentKey(contentRef.current);
+  });
   const { boxRef, fontSize: fs } = useFitFontSize(
     (w, h) => (w && h ? BASE_PX * Math.min(w / 1920, h / 1080) * textScale : BASE_PX * textScale),
-    [hoursShown, showSunCard, awayOn, textScale, style.padding, style.fontFamily].join('|'),
+    [hoursShown, showSunCard, awayOn, textScale, style.padding, style.fontFamily, contentKey].join('|'),
   );
 
   // ── Formatting ──
@@ -353,6 +374,14 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     return () => clearInterval(timer);
   }, [radarWanted, radarSeconds]);
   const radarShowing = radarWanted && radarTurn;
+  const comets = useComets(skyComets && showSunCard, cometMag);
+  const kpRows = useKpForecast(skyAurora && showSunCard && typeof lat === 'number');
+  // Several sky events take turns on one line.
+  const [skyTurn, setSkyTurn] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setSkyTurn((v) => v + 1), 9000);
+    return () => clearInterval(timer);
+  }, []);
 
   // ── Styles ──
   const shadow = textShadow ? `0 ${fs * 0.05}px ${fs * 0.14}px rgba(0, 0, 0, 0.6)` : undefined;
@@ -562,26 +591,46 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const kind = first?.kind;
   const RainGlyph = !wet ? CircleCheck : kind === 'snow' ? Snowflake : kind === 'storm' ? CloudLightning : kind === 'sleet' || kind === 'freezing' || kind === 'mix' ? CloudHail : Umbrella;
   const badge = !wet ? '#4ade80' : kind === 'snow' ? SNOW_ICE : kind === 'storm' ? STORM_PURPLE : kind === 'sleet' || kind === 'freezing' || kind === 'mix' ? SLEET_LILAC : RAIN_BLUE;
+  // A weather alert takes the card over: its colour, its title first, and the
+  // precipitation outlook underneath.
+  const alert = alerts[0];
+  const alertColor = alert ? SEVERITY_COLOR[alert.severity] ?? SEVERITY_COLOR.Unknown : null;
+  const alertRgb = alertColor ? hexToRgb(alertColor) : null;
   const precipCard = (
-    <div data-fit style={{ ...card('rainStrength'), flexDirection: 'row', alignItems: 'center', gap: '0.8em' }}>
+    <div data-fit style={{
+      ...card('rainStrength'), flexDirection: 'row', alignItems: 'center', gap: '0.8em',
+      ...(alertRgb ? { background: `rgba(${alertRgb.join(',')}, 0.82)`, boxShadow: `inset 0 0 0 0.12em rgba(255, 255, 255, 0.35)` } : {}),
+    }}>
       <div style={{
         flexShrink: 0, width: '3.2em', height: '3.2em', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: badge, color: '#0f172a',
+        background: alert ? '#ffffff' : badge, color: alertColor ?? '#0f172a',
       }}>
-        <RainGlyph size="1.9em" strokeWidth={2.25} aria-hidden="true" />
+        {alert ? <TriangleAlert size="1.9em" strokeWidth={2.4} aria-hidden="true" /> : <RainGlyph size="1.9em" strokeWidth={2.25} aria-hidden="true" />}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15em', minWidth: 0, flex: 1 }}>
-        <span style={{ fontSize: '1.75em', fontWeight: 800, lineHeight: 1.05 }}>{rainTitle}</span>
-        <span style={{ fontSize: '1.15em', opacity: 0.9 }}>{rainDetail}</span>
+        {alert ? (
+          <>
+            <span style={{ fontSize: '1.5em', fontWeight: 800, lineHeight: 1.05 }}>
+              {alert.title}
+              {alerts.length > 1 && <span style={{ fontSize: '0.6em', fontWeight: 700, opacity: 0.9, whiteSpace: 'nowrap' }}> +{alerts.length - 1} more</span>}
+            </span>
+            <span style={{ fontSize: '1.15em' }}><span style={{ fontWeight: 800 }}>{rainTitle}</span> · {rainDetail}</span>
+          </>
+        ) : (
+          <>
+            <span style={{ fontSize: '1.75em', fontWeight: 800, lineHeight: 1.05 }}>{rainTitle}</span>
+            <span style={{ fontSize: '1.15em', opacity: 0.9 }}>{rainDetail}</span>
+          </>
+        )}
         {(soon || second || nextAway) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4em 0.8em', marginTop: '0.15em', fontSize: '1.05em', fontWeight: 700 }}>
-            {soon && <span style={{ color: badge === '#4ade80' ? RAIN_BLUE : badge }}>{soon}</span>}
+            {soon && <span style={{ color: alert ? '#ffffff' : badge === '#4ade80' ? RAIN_BLUE : badge }}>{soon}</span>}
             {nextAway && (awayHit ? (
               <span style={{ padding: '0.05em 0.5em', borderRadius: '0.35em', background: accent, color: '#0f172a', textShadow: 'none' }}>
                 While you're out ({awayLabel}): {awayHit.start <= nextAway[0] ? 'wet from the start' : `from ${timeLabel(awayHit.start)}`}
               </span>
             ) : (
-              <span style={{ color: '#4ade80' }}>Dry while you're out ({awayLabel})</span>
+              <span style={{ color: alert ? '#ffffff' : '#4ade80' }}>Dry while you're out ({awayLabel})</span>
             ))}
             {second && <span style={{ opacity: 0.9 }}>Then {word(second).toLowerCase()} {range(second.start, second.end)}</span>}
           </div>
@@ -667,15 +716,63 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     </div>
   ) : null;
 
+  // ── Sky events ──
+  const fMonthDay = formatter(tz, { month: 'short', day: 'numeric' });
+  const skyFmt: SkyFormat = {
+    time: timeLabel,
+    day: (t) => {
+      const d = dayWord(t);
+      if (!d) return 'today';
+      if (d === 'Tomorrow') return 'tomorrow';
+      return t - now > 6 * 24 * HOUR ? `${d}, ${fMonthDay.format(t)}` : d;
+    },
+    night: (t) => {
+      // A night belongs to the evening it starts on.
+      const eve = localDate(t - 12 * HOUR);
+      if (eve <= today) return 'tonight';
+      if (eve === tomorrow) return 'tomorrow night';
+      const noon = Date.parse(`${eve}T12:00:00Z`);
+      return `${fWeekday.format(noon)}${noon - now > 6 * 24 * HOUR ? `, ${fMonthDay.format(noon)}` : ''} night`;
+    },
+    date: (t) => fMonthDay.format(t),
+  };
+  const skyEvents: SkyEvent[] = [];
+  if (hasLocation && showSunCard) {
+    const [la, ln] = [lat as number, lng as number];
+    if (skyEclipses) {
+      const key = `${Math.floor(now / HOUR)}|${la}|${ln}|${tz}|${h12}`;
+      if (eclipseCache?.key !== key) {
+        try {
+          eclipseCache = { key, events: eclipseEvents(now, la, ln, skyFmt) };
+        } catch {
+          eclipseCache = { key, events: [] };
+        }
+      }
+      skyEvents.push(...eclipseCache.events.filter((e) => e.at > now - 6 * HOUR));
+    }
+    if (skyMeteors) skyEvents.push(...meteorEvents(now, la, skyFmt));
+    if (skyAurora) {
+      const a = auroraEvent(kpRows, now, la, ln, skyFmt);
+      if (a) skyEvents.push(a);
+    }
+  }
+  if (skyComets) skyEvents.push(...cometEvents(comets, now, cometMag, skyFmt));
+  skyEvents.sort((a, b) => a.at - b.at);
+  const skyNowEvent = skyEvents.length ? skyEvents[skyTurn % skyEvents.length] : null;
+  contentRef.current = [alert?.title, alerts.length, rainTitle, rainDetail, soon, second ? 1 : 0, awayHit ? 1 : 0, goTips, skyEvents.length > 0].join('|');
+
   // ── Sun and moon: the Sun Arc Clock, inside a card ──
   const sunCard = showSunCard ? (
     <div data-fit style={{ ...card('sunStrength'), padding: '0.4em 0.6em' }}>
+      {/* The arc takes what the lines underneath leave it. */}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
       <SunClock
         config={{ showClock: showArcClock, showCountdown: showArcCountdown, showPhaseIcon: false, timeFormat: timeFormat ?? 'auto', softShadow: textShadow }}
         /* Its own text never smaller than the rest of the screen's small print. */
         style={{ ...style, fontSize: fs * 0.72, backgroundColor: 'transparent', padding: 0, borderRadius: 0, opacity: 1, backdropBlur: 0, borderWidth: 0, shadowSize: 0 }}
         timezone={tz} latitude={lat} longitude={lng} timeFormat={props.timeFormat}
       />
+      </div>
       {showSunDetails && hasLocation && (() => {
         const today = todaysSunTimes(now, lat as number, lng as number, tz);
         const yday = todaysSunTimes(now - 24 * HOUR, lat as number, lng as number, tz);
@@ -685,16 +782,41 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
         const mp = moonPhase(now);
         const pass = moonPass(now, lat as number, lng as number);
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15em', fontSize: '1.05em', fontWeight: 650, whiteSpace: 'nowrap', padding: '0.2em 0.3em 0.1em' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35em' }}>
-              <OutlinedGlyph Glyph={Hourglass} color={accent} size="1.1em" />
-              {Math.floor(mins / 60)}h {mins % 60}m<span style={{ fontSize: '0.8em', opacity: 0.85 }}>· {Math.abs(diff)} min {diff < 0 ? 'shorter' : 'longer'}</span>
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35em' }}>
-              <OutlinedGlyph Glyph={Moon} color="#c4b5fd" size="1.1em" />
-              {moonPhaseName(mp.phase)} {Math.round(mp.fraction * 100)}%
-              {!pass.up && pass.rise != null && <span style={{ fontSize: '0.8em', opacity: 0.85 }}>· rises {timeLabel(pass.rise)}</span>}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6em', flexShrink: 0, fontSize: '1.05em', fontWeight: 650, whiteSpace: 'nowrap', padding: '0.2em 0.3em 0.1em' }}>
+            <MoonPicture phase={mp.phase} size="2.9em" mirror={(lat as number) < 0} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15em' }}>
+              <span>
+                {moonPhaseName(mp.phase)} {Math.round(mp.fraction * 100)}%
+                {!pass.up && pass.rise != null && <span style={{ fontSize: '0.8em', opacity: 0.85 }}> · rises {timeLabel(pass.rise)}</span>}
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35em' }}>
+                <OutlinedGlyph Glyph={Hourglass} color={accent} size="1em" />
+                {Math.floor(mins / 60)}h {mins % 60}m<span style={{ fontSize: '0.8em', opacity: 0.85 }}>· {Math.abs(diff)} min {diff < 0 ? 'shorter' : 'longer'}</span>
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+      {skyNowEvent && (() => {
+        const [color, Glyph] = SKY_STYLE[skyNowEvent.kind];
+        const [r, g, b] = hexToRgb(color);
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.5em', flexShrink: 0, marginTop: '0.3em', padding: '0.3em 0.6em', borderRadius: '0.5em', whiteSpace: 'nowrap',
+            background: `rgba(${r}, ${g}, ${b}, 0.16)`, boxShadow: `inset 0 0 0 0.08em rgba(${r}, ${g}, ${b}, 0.55)`,
+          }}>
+            <OutlinedGlyph Glyph={Glyph} color={color} size="1.5em" />
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: '1.05em', fontWeight: 800, color, overflow: 'hidden', textOverflow: 'ellipsis' }}>{skyNowEvent.title}</span>
+              <span style={{ fontSize: '0.88em', fontWeight: 600, opacity: 0.92, overflow: 'hidden', textOverflow: 'ellipsis' }}>{skyNowEvent.detail}</span>
+            </div>
+            {skyEvents.length > 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2em', flexShrink: 0 }}>
+                {skyEvents.map((e, i) => (
+                  <span key={i} style={{ width: '0.38em', height: '0.38em', borderRadius: '50%', background: i === skyTurn % skyEvents.length ? '#ffffff' : 'rgba(255,255,255,0.3)' }} />
+                ))}
+              </div>
+            )}
           </div>
         );
       })()}
@@ -724,16 +846,6 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   return (
     <div ref={boxRef} style={root}>
       {skyNow && <LivingSky scene={skyNow} />}
-      {alerts.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.5em', flexShrink: 0, padding: '0.35em 0.8em', borderRadius: '0.6em',
-          background: SEVERITY_COLOR[alerts[0].severity] ?? SEVERITY_COLOR.Unknown, color: '#ffffff', fontSize: '1.2em', fontWeight: 700, ...layer,
-        }}>
-          <TriangleAlert size="1.2em" strokeWidth={2.4} aria-hidden="true" />
-          <span style={{ minWidth: 0 }}>{alerts[0].title}</span>
-          {alerts.length > 1 && <span style={{ marginLeft: 'auto', whiteSpace: 'nowrap', opacity: 0.9 }}>+{alerts.length - 1} more</span>}
-        </div>
-      )}
       <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '34fr 66fr', gap: '0.6em', ...layer }}>
         <div style={{ display: 'grid', gridTemplateRows: showSunCard ? 'minmax(0, 1.35fr) minmax(0, 1fr)' : '1fr', gap: '0.6em', minHeight: 0 }}>
           {nowCard}

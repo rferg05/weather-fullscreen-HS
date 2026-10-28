@@ -29,6 +29,12 @@
     "showArcCountdown": false,
     "showGoTips": true,
     "showSunDetails": true,
+    "showSkyEvents": true,
+    "skyEclipses": true,
+    "skyMeteors": true,
+    "skyComets": true,
+    "skyAurora": true,
+    "cometMagnitude": 7,
     "timeFormat": "auto",
     "textScale": 1,
     "cardColor": "#0b1220",
@@ -204,10 +210,55 @@
       },
       "showSunDetails": {
         "type": "boolean",
-        "title": "Show day length and tonight's moon",
-        "description": "Under the sunrise and sunset times.",
+        "title": "Show tonight's moon and day length",
+        "description": "Under the sunrise and sunset times, with a picture of the moon's phase.",
         "ui:widget": "toggle",
         "ui:group": "Layout"
+      },
+      "showSkyEvents": {
+        "type": "boolean",
+        "title": "Show sky events",
+        "description": "In the sun and moon card, only when something is coming up.",
+        "ui:widget": "toggle",
+        "ui:group": "Sky events"
+      },
+      "skyEclipses": {
+        "type": "boolean",
+        "title": "Eclipses visible from here",
+        "description": "Solar and lunar, from two weeks ahead.",
+        "ui:widget": "toggle",
+        "ui:group": "Sky events"
+      },
+      "skyMeteors": {
+        "type": "boolean",
+        "title": "Meteor showers",
+        "description": "The major showers, from three days before their peak.",
+        "ui:widget": "toggle",
+        "ui:group": "Sky events"
+      },
+      "skyComets": {
+        "type": "boolean",
+        "title": "Bright comets",
+        "description": "From the COBS comet database.",
+        "ui:widget": "toggle",
+        "ui:group": "Sky events"
+      },
+      "cometMagnitude": {
+        "type": "number",
+        "title": "Comets brighter than magnitude",
+        "description": "Lower is brighter: 5 for the naked eye, 7 for binoculars.",
+        "minimum": 3,
+        "maximum": 10,
+        "ui:widget": "slider",
+        "ui:step": 0.5,
+        "ui:group": "Sky events"
+      },
+      "skyAurora": {
+        "type": "boolean",
+        "title": "Northern lights",
+        "description": "When NOAA's forecast storm could reach your latitude after dark.",
+        "ui:widget": "toggle",
+        "ui:group": "Sky events"
       },
       "timeFormat": {
         "type": "string",
@@ -344,6 +395,8 @@
   "allowedDomains": [
     "api.open-meteo.com",
     "air-quality-api.open-meteo.com",
-    "api.librewxr.net"
+    "api.librewxr.net",
+    "cobs.si",
+    "services.swpc.noaa.gov"
   ]
 }
