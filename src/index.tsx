@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { ArrowUp, Droplets, Leaf, TriangleAlert, Umbrella, CircleCheck, Snowflake, Wind, Sun as SunIcon, CalendarDays, CloudLightning, CloudHail, Thermometer, Shirt, Hourglass, Sparkles, Eclipse, Telescope, Rainbow } from 'lucide-react';
+import { ArrowUp, Droplets, Leaf, TriangleAlert, Umbrella, CircleCheck, Snowflake, Wind, Sun as SunIcon, CalendarDays, CloudLightning, CloudHail, Thermometer, Shirt, Sparkles, Eclipse, Telescope, Rainbow } from 'lucide-react';
 import type { PluginComponentProps } from './hs-plugin';
 import { hostFrameStyle } from './host-style';
 import { colorIconComponents } from './color-icons';
@@ -764,39 +764,32 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   // ── Sun and moon: the Sun Arc Clock, inside a card ──
   const sunCard = showSunCard ? (
     <div data-fit style={{ ...card('sunStrength'), padding: '0.4em 0.6em' }}>
-      {/* The arc takes what the lines underneath leave it. */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-      <SunClock
-        config={{ showClock: showArcClock, showCountdown: showArcCountdown, showPhaseIcon: false, timeFormat: timeFormat ?? 'auto', softShadow: textShadow }}
-        /* Its own text never smaller than the rest of the screen's small print. */
-        style={{ ...style, fontSize: fs * 0.72, backgroundColor: 'transparent', padding: 0, borderRadius: 0, opacity: 1, backdropBlur: 0, borderWidth: 0, shadowSize: 0 }}
-        timezone={tz} latitude={lat} longitude={lng} timeFormat={props.timeFormat}
-      />
-      </div>
+      {/* Tonight's moon, above the arc. */}
       {showSunDetails && hasLocation && (() => {
-        const today = todaysSunTimes(now, lat as number, lng as number, tz);
-        const yday = todaysSunTimes(now - 24 * HOUR, lat as number, lng as number, tz);
-        const len = (t: SunTimes) => (t.sunset ?? 0) - (t.sunrise ?? 0);
-        const mins = Math.round(len(today) / 60_000);
-        const diff = Math.round((len(today) - len(yday)) / 60_000);
         const mp = moonPhase(now);
         const pass = moonPass(now, lat as number, lng as number);
         return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6em', flexShrink: 0, fontSize: '1.05em', fontWeight: 650, whiteSpace: 'nowrap', padding: '0.2em 0.3em 0.1em' }}>
-            <MoonPicture phase={mp.phase} size="2.9em" mirror={(lat as number) < 0} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15em' }}>
-              <span>
-                {moonPhaseName(mp.phase)} {Math.round(mp.fraction * 100)}%
-                {!pass.up && pass.rise != null && <span style={{ fontSize: '0.8em', opacity: 0.85 }}> · rises {timeLabel(pass.rise)}</span>}
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35em' }}>
-                <OutlinedGlyph Glyph={Hourglass} color={accent} size="1em" />
-                {Math.floor(mins / 60)}h {mins % 60}m<span style={{ fontSize: '0.8em', opacity: 0.85 }}>· {Math.abs(diff)} min {diff < 0 ? 'shorter' : 'longer'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.7em', flexShrink: 0, fontWeight: 650, whiteSpace: 'nowrap', padding: '0.15em 0.3em 0.2em' }}>
+            <MoonPicture phase={mp.phase} size={skyNowEvent ? "3.6em" : "4.6em"} mirror={(lat as number) < 0} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
+              <span style={{ fontSize: '1.3em', fontWeight: 800 }}>{moonPhaseName(mp.phase)}</span>
+              <span style={{ fontSize: '1.05em', opacity: 0.92 }}>
+                {Math.round(mp.fraction * 100)}% lit
+                {!pass.up && pass.rise != null && <span style={{ opacity: 0.85 }}> · rises {timeLabel(pass.rise)}</span>}
               </span>
             </div>
           </div>
         );
       })()}
+      {/* The arc takes what the moon and the lines underneath leave it. */}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+      <SunClock
+        config={{ showClock: showArcClock, showCountdown: showArcCountdown, showPhaseIcon: false, showMoonName: !(showSunDetails && hasLocation), timeFormat: timeFormat ?? 'auto', softShadow: textShadow }}
+        /* Its own text never smaller than the rest of the screen's small print. */
+        style={{ ...style, fontSize: fs * 0.72, backgroundColor: 'transparent', padding: 0, borderRadius: 0, opacity: 1, backdropBlur: 0, borderWidth: 0, shadowSize: 0 }}
+        timezone={tz} latitude={lat} longitude={lng} timeFormat={props.timeFormat}
+      />
+      </div>
       {skyNowEvent && (() => {
         const [color, Glyph] = SKY_STYLE[skyNowEvent.kind];
         const [r, g, b] = hexToRgb(color);

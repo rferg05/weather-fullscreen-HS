@@ -194,7 +194,9 @@ function Scene({ w, h, fs, config, clock, rise, set, progress, phase, moon, mirr
   // ── The arc: as wide as the blocks allow, as tall as the space above the horizon.
   const strokeW = Math.max(2, fs * 0.3);
   // At night the moon rides the arc's top, so its phase name sits higher to clear it.
-  const topSpace = config.showNoon || notice ? fs * (night ? 2.7 : 1.8) : strokeW + fs * 0.3;
+  const topSpace = notice ? fs * 1.8
+    : night ? (config.showNoon && config.showMoonName ? fs * 2.7 : fs * 1.1)
+    : config.showNoon ? fs * 1.8 : strokeW + fs * 0.3;
   const R = Math.max(4, Math.min(w / 2 - textW / 2 - iconGap - iconSize - 2, horizonY - topSpace));
   const cx = w / 2;
   const top = horizonY - R;
@@ -278,7 +280,7 @@ function Scene({ w, h, fs, config, clock, rise, set, progress, phase, moon, mirr
           <text x={cx} y={top - fs * 0.8} textAnchor="middle" fontSize={fs}>noon</text>
         </g>
       )}
-      {config.showNoon && !notice && night && (
+      {config.showNoon && config.showMoonName && !notice && night && (
         <text x={cx} y={top - fs * 1.7} textAnchor="middle" fontSize={fs} opacity={0.85}>{night.phaseName}</text>
       )}
       {notice && <text x={cx} y={top - fs * 0.8} textAnchor="middle" fontSize={fs} opacity={0.85}>{notice}</text>}

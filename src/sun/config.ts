@@ -13,6 +13,8 @@ export interface Config {
   iconStyle: IconStyle;
   showLabels: boolean;
   showNoon: boolean;
+  /** Tonight's phase name over the arc (off where the moon is named elsewhere). */
+  showMoonName: boolean;
   showSunOnArc: boolean;
   accentColor: string;
   softShadow: boolean;
@@ -35,6 +37,7 @@ export const DEFAULTS: Config = {
   iconStyle: 'color',
   showLabels: true,
   showNoon: true,
+  showMoonName: true,
   showSunOnArc: true,
   accentColor: '#fbbf24',
   softShadow: true,
@@ -71,6 +74,7 @@ export function readConfig(raw: Record<string, unknown>): Config {
     iconStyle: oneOf(raw.iconStyle, ['color', 'line'] as const, DEFAULTS.iconStyle),
     showLabels: bool(raw.showLabels, DEFAULTS.showLabels),
     showNoon: bool(raw.showNoon, DEFAULTS.showNoon),
+    showMoonName: bool(raw.showMoonName, DEFAULTS.showMoonName),
     showSunOnArc: bool(raw.showSunOnArc, DEFAULTS.showSunOnArc),
     accentColor: typeof raw.accentColor === 'string' && raw.accentColor ? raw.accentColor : DEFAULTS.accentColor,
     softShadow: bool(raw.softShadow, DEFAULTS.softShadow),

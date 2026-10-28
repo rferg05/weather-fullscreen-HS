@@ -26,7 +26,7 @@ This always points at the newest release. To update: Plugin Store > **Installed*
   - night hours shaded and a *now* line
   - rain as bars sized by **how much** falls each hour, the chance as a dashed line over them, and each spell's total above it
 - **Now**: the date, the temperature, conditions, high and low, and what to bring: *Light jacket · Umbrella by 7 PM*. Wind with direction and gusts, humidity, feels like and UV (daytime, with its level: *3 Moderate*), each with an outlined icon in its own color. **Air quality** joins them only when it's bad: during an air-quality alert, or when the US AQI reaches 151 (adjustable), shown with its EPA category and color. A sharp swing (10°F or more within 3 hours) in the next 12 hours shows here too: *▼ Dropping 14° to 52° by 3 AM*.
-- **Sun and moon**: the Sun Arc Clock, with the time, golden hour, an optional countdown to sunset or sunrise, and the moon's arc at night. Under it, a picture of tonight's moon in its phase, with its name and how much is lit (*Waning gibbous 96% · rises 6:22 PM*), and the day's length and how it's changing (*10h 35m · 3 min shorter*).
+- **Sun and moon**: the Sun Arc Clock, with the time, golden hour, an optional countdown to sunset or sunrise, and the moon's arc at night. Above it, a picture of tonight's moon in its phase, with its name and how much is lit (*Waning gibbous · 96% lit · rises 6:22 PM*).
 - **Sky events**, in the sun and moon card when something is coming up, taking turns if there are several:
   - **Eclipses** visible from here, solar and lunar, from two weeks ahead: *Partial solar eclipse Sat · 2:10–4:05 PM · 45% of the sun covered*. Penumbral lunar eclipses are left out.
   - **Meteor showers** (Quadrantids, Lyrids, Eta Aquariids, Perseids, Orionids, Leonids, Geminids) from three days before their peak: *Geminids peak tonight · up to 150/hr after midnight · moon 15%, dark skies*. Showers whose radiant stays low from your latitude are skipped.
@@ -66,7 +66,7 @@ The root text is 30 px on a 1920×1080 module and scales with the smaller of its
 | Living sky background | on | In place of the background photo. |
 | Show the sun and moon arc / time inside it / countdown to sunset or sunrise | on / on / off | |
 | Show what to bring | on | *Light jacket · Umbrella by 7 PM*: a jacket from the coldest of the next 12 hours, an umbrella if rain is likely (boots for snow or ice), sunscreen from UV 6. |
-| Show tonight's moon and day length | on | Under the sunrise and sunset times. |
+| Show tonight's moon | on | Above the arc. |
 | Sky events: eclipses / meteor showers / comets / northern lights | on / on / on / on | All off with *Show sky events*. |
 | Comets brighter than magnitude | 7 | 5 for the naked eye, 7 for binoculars. |
 | Times | Household setting | Or 12-hour or 24-hour. |

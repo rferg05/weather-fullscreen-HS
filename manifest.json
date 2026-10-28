@@ -210,8 +210,8 @@
       },
       "showSunDetails": {
         "type": "boolean",
-        "title": "Show tonight's moon and day length",
-        "description": "Under the sunrise and sunset times, with a picture of the moon's phase.",
+        "title": "Show tonight's moon",
+        "description": "A picture of the moon's phase above the arc, with its name and how much is lit.",
         "ui:widget": "toggle",
         "ui:group": "Layout"
       },
