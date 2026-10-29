@@ -1,6 +1,6 @@
 # Weather Full Screen
 
-A Home Screens module that fills the screen with weather, in order of what matters before you leave the house: **will it rain or snow, when, and how much**. It combines [Outlined Weather](../outlined-weather/README.md) and the [Sun Arc Clock](../../Sun/sun-clock/README.md) over an animated sky that matches the weather, and is built to be read from across the room.
+A Home Screens module that fills the screen with weather, in order of what matters before you leave the house: **will it rain or snow, when, and how much**. It combines [Outlined Weather](../outlined-weather/README.md) and the [Sun Arc Clock](../../Sun/sun-clock/README.md), and is built to be read from across the room.
 
 ## Install
 
@@ -25,14 +25,13 @@ This always points at the newest release. To update: Plugin Store > **Installed*
   - the temperature line, coloured from cold blue to hot red, with the high and low labelled large
   - night hours shaded and a *now* line
   - rain as bars sized by **how much** falls each hour, the chance as a dashed line over them, and each spell's total above it
-- **Now**: the date, the temperature, conditions, high and low, and what to bring: *Light jacket · Umbrella by 7 PM*. Wind with direction and gusts, humidity, feels like and UV (daytime, with its level: *3 Moderate*), each with an outlined icon in its own color. **Air quality** joins them only when it's bad: during an air-quality alert, or when the US AQI reaches 151 (adjustable), shown with its EPA category and color. A sharp swing (10°F or more within 3 hours) in the next 12 hours shows here too: *▼ Dropping 14° to 52° by 3 AM*.
+- **Now**: the date, the temperature with a gently animated weather icon, conditions, high and low, and what to bring: *Light jacket · Umbrella by 7 PM*. Wind with direction and gusts, humidity, feels like and UV (daytime, with its level: *3 Moderate*), each with an outlined icon in its own color. **Air quality** joins them only when it's bad: during an air-quality alert, or when the US AQI reaches 151 (adjustable), shown with its EPA category and color. A sharp swing (10°F or more within 3 hours) in the next 12 hours shows here too: *▼ Dropping 14° to 52° by 3 AM*.
 - **Sun and moon**: the Sun Arc Clock, with the time, golden hour, an optional countdown to sunset or sunrise, and the moon's arc at night. Above it, while the moon is up, a picture of the moon in its phase, with its name and how much is lit (*Waning gibbous · 96% lit*).
 - **Sky events**, in the sun and moon card when something is coming up, taking turns if there are several:
   - **Eclipses** visible from here, solar and lunar, from two weeks ahead: *Partial solar eclipse Sat · 2:10–4:05 PM · 45% of the sun covered*. Penumbral lunar eclipses are left out.
   - **Meteor showers** (Quadrantids, Lyrids, Eta Aquariids, Perseids, Orionids, Leonids, Geminids) from three days before their peak: *Geminids peak tonight · up to 150/hr after midnight · moon 15%, dark skies*. Showers whose radiant stays low from your latitude are skipped.
   - **Comets** brighter than magnitude 7 (adjustable), or on their way to it within 45 days.
   - **Northern lights** (southern in the southern hemisphere) when NOAA's Kp forecast for the dark hours of the next day reaches what your geomagnetic latitude needs.
-- **Living sky** behind everything: Home Screens' animated weather background, following the real sun (day, golden hour, night with stars) and the current weather: drifting clouds, fog, rain that falls lighter or harder with the forecast amount, snow, sleet, and lightning in storms.
 - **The week**: each day's low-to-high range on one shared scale, with the chance and amount of rain.
 - A weather **alert** takes over the precipitation card while a watch or warning is active: the card turns the alert's color and leads with its title, with the precipitation outlook underneath. A note shows when the forecast is stale.
 
@@ -41,8 +40,6 @@ This always points at the newest release. To update: Plugin Store > **Installed*
 Temperatures, conditions, wind and the week come from the weather provider set in Home Screens. That data has the chance of rain but not the amount, so the module asks **Open-Meteo** (free, no key, through the Home Screens server) for hourly and daily rain and snow amounts and weather codes every 15 minutes (the codes are what tell sleet, freezing rain and thunder apart), and its air-quality service for the US AQI every 30 minutes. The radar's frame list comes from LibreWXR's public server every 10 minutes, only while the radar is up. Eclipses and meteor showers are worked out on the device with [astronomy-engine](https://github.com/cosinekitty/astronomy) (MIT); bright comets come from [COBS](https://cobs.si) twice a day, and the Kp forecast from NOAA's Space Weather Prediction Center every 30 minutes. COBS doesn't say where in the sky a comet is, so one may be too far south to see from here. When Open-Meteo answers, both the chance and the amount in the rain outlook and the chart come from it, so the two always agree. With *Rain amounts from Open-Meteo* off, or if it's unreachable, everything falls back to the provider's chance of rain.
 
 ## Looks
-
-With the living sky on, it fills the module in place of the background photo; turn it off to put your photo back. The sky's pictures are served by Home Screens itself (1.14.0 and later).
 
 Each section is a card, styled like the full-screen calendar's day cards: a card color, a **strength per card** (0 is fully clear, 100 solid) so you choose where the background photo shows through, an optional frosted-glass blur and border, and a soft shadow behind text that keeps it readable when a card is mostly clear. Text isn't outlined; the colored icons for wind, humidity, feels like, UV and air quality have a dark outline so they read over any background.
 
@@ -63,7 +60,7 @@ The root text is 30 px on a 1920×1080 module and scales with the smaller of its
 | Hours on the chart | 36 | 12–48. |
 | Warn about temperature swings of | 10°F | Within 3 hours, in the next 12. |
 | Show air quality when it's bad / from AQI | on / 151 | Or during an air-quality alert. |
-| Living sky background | on | In place of the background photo. |
+| Animate the weather icon | on | Turning sun rays, drifting clouds, falling rain and snow. |
 | Show the sun and moon arc / time inside it / countdown to sunset or sunrise | on / on / off | |
 | Show what to bring | on | *Light jacket · Umbrella by 7 PM*: a jacket from the coldest of the next 12 hours, an umbrella if rain is likely (boots for snow or ice), sunscreen from UV 6. |
 | Show tonight's moon | on | Above the arc, while the moon is up. |
@@ -80,12 +77,10 @@ The root text is 30 px on a 1920×1080 module and scales with the smaller of its
 
 ```bash
 npm install
-npm test          # precipitation spells, temperature swings, sky scenes
+npm test          # precipitation spells, temperature swings, sky events
 npm run build     # dist/bundle.js
 ```
 
 To package: put `manifest.json` and `dist/bundle.js(.map)` in a `weather-fullscreen/` folder, `tar -czf weather-fullscreen-<version>.tar.gz` it into `../releases/`, and attach that plus a copy named `weather-fullscreen.tar.gz` to a GitHub release tagged `v<version>`.
 
 `src/sun/` is the Sun Arc Clock's source, copied in; changes to the clock there don't reach the standalone module, or the other way round.
-
-`src/sky/` is the living sky from [Home Screens](https://github.com/home-screens/home-screens) (MIT, © Bryan Brandau), copied from `src/components/modules/fullscreen-weather/` at 715395d, with rain intensity, sleet and no sky moon added here.

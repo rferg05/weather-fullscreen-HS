@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { PLUGIN_ID } from './openmeteo';
-import { useBoxSize } from './sky/useBoxSize';
+import { useBoxSize } from './useBoxSize';
 
 const INDEX_URL = 'https://api.librewxr.net/public/weather-maps.json';
 const INDEX_REFRESH_MS = 10 * 60_000;

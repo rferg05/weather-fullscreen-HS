@@ -23,7 +23,7 @@
     "radarZoom": 7,
     "hours": 36,
     "swingThreshold": 10,
-    "livingSky": true,
+    "animateIcon": true,
     "showSunCard": true,
     "showArcClock": true,
     "showArcCountdown": false,
@@ -175,10 +175,10 @@
         "ui:step": 1,
         "ui:group": "Precipitation"
       },
-      "livingSky": {
+      "animateIcon": {
         "type": "boolean",
-        "title": "Living sky background",
-        "description": "An animated sky that matches the weather and the sun, in place of the background photo: clouds, rain, snow, fog and lightning.",
+        "title": "Animate the weather icon",
+        "description": "The icon beside the current temperature moves gently: turning sun rays, drifting clouds, falling rain and snow, flickering lightning.",
         "ui:widget": "toggle",
         "ui:group": "Layout"
       },

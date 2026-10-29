@@ -12,8 +12,7 @@ import type { RainEvent } from './rain';
 import { useAirQuality, usePrecip } from './openmeteo';
 import type { Falling } from './openmeteo';
 import { RadarMap, useRadarIndex } from './radar';
-import LivingSky from './sky/LivingSky';
-import { plotScene, skyScene, sunPhase } from './sky/sky-layer';
+import { AnimatedWeatherIcon } from './animated-icon';
 import { sunAltitude, todaysSunTimes, moonPhase, moonPhaseName, moonPass } from './sun/astro';
 import type { SunTimes } from './sun/astro';
 import SunClock from './sun/index';
@@ -215,7 +214,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
   const showArcCountdown = config.showArcCountdown === true;
   const showGoTips = config.showGoTips !== false;
   const showSunDetails = config.showSunDetails !== false;
-  const livingSky = config.livingSky !== false;
+  const animateIcon = config.animateIcon !== false;
   const skyOn = config.showSkyEvents !== false;
   const skyEclipses = skyOn && config.skyEclipses !== false;
   const skyMeteors = skyOn && config.skyMeteors !== false;
@@ -393,7 +392,6 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     flexDirection: 'column',
     gap: '0.6em',
     textShadow: shadow,
-    ...(livingSky ? { position: 'relative', overflow: 'hidden', backgroundColor: '#151833' } : {}),
   };
   const card = (key: string): CSSProperties => ({
     overflow: 'hidden',
@@ -471,7 +469,9 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
       {current && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3em' }}>
           <span style={{ fontSize: '5em', fontWeight: 300, lineHeight: 0.92, letterSpacing: '-0.03em' }}>{deg(current.temp)}</span>
-          <Icon id={current.icon} size="3.8em" />
+          {(animateIcon && (
+            <AnimatedWeatherIcon id={current.icon} size="3.8em" style={{ flexShrink: 0, overflow: 'visible', filter: textShadow ? `drop-shadow(0 ${fs * 0.04}px ${fs * 0.1}px rgba(0,0,0,0.5))` : undefined }} />
+          )) || <Icon id={current.icon} size="3.8em" />}
         </div>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2em' }}>
@@ -823,22 +823,10 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
     return age >= 2 ? `Forecast is ${age} h old` : null;
   })();
 
-  // What's falling right now, and how hard, for the sky.
-  const nowHour = chartHours[0];
-  const nowWet = first != null && first.start <= now;
-  const skyNow = livingSky
-    ? plotScene(
-      skyScene(current?.icon, sunPhase(hasLocation ? sunAltitude(now, lat as number, lng as number) : null)),
-      nowWet ? (nowHour?.falling ?? (first?.kind === 'snow' ? 'snow' : 'rain')) : null,
-      nowWet ? (intensity(nowHour?.rain ?? null, metric) as 'light' | 'moderate' | 'heavy' | null) : null,
-    )
-    : null;
-  const layer: CSSProperties = livingSky ? { position: 'relative', zIndex: 1 } : {};
 
   return (
     <div ref={boxRef} style={root}>
-      {skyNow && <LivingSky scene={skyNow} />}
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '34fr 66fr', gap: '0.6em', ...layer }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '34fr 66fr', gap: '0.6em' }}>
         <div style={{ display: 'grid', gridTemplateRows: showSunCard ? 'minmax(0, 1.35fr) minmax(0, 1fr)' : '1fr', gap: '0.6em', minHeight: 0 }}>
           {nowCard}
           {sunCard}
@@ -852,7 +840,7 @@ export default function WeatherFullScreen(props: PluginComponentProps) {
           {weekCard}
         </div>
       </div>
-      {stale && <div style={{ alignSelf: 'flex-end', fontSize: '0.8em', opacity: 0.85, flexShrink: 0, ...layer }}>{stale}</div>}
+      {stale && <div style={{ alignSelf: 'flex-end', fontSize: '0.8em', opacity: 0.85, flexShrink: 0 }}>{stale}</div>}
     </div>
   );
 }
